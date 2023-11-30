@@ -1,5 +1,15 @@
 
 # IMPORTANT READ THIS FIRST BEFORE BUILDING OR DOWNLOADING A RELEASE ABOUT SEED PHRASE IMPORT / EXPORT BETWEEN VERIONS
+https://github.com/bitnet-io/electrum-bitnet-4.2.2/blob/main/note-about-private-keys.txt
+
+
+
+
+
+
+
+
+
 
 Electrum - Lightweight Bitcoin client
 =====================================
