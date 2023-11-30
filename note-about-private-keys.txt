@@ -1,0 +1,8 @@
+it is not possible to export from 4.2.2 and import into 4.1.5
+it is also not possible to export from 4.1.5 and import into 4.2.2
+export from 4.2.2 will only work with bitnet-qt import as long as the bitnet-qt wallet is changed to a legacy wallet instead of an HD wallet
+
+THE SUGGESTION IS TO KEEP YOUR PRIVATE KEY OR YOUR SEEd PHRASE DOCUMENTED FOR THE VERSION OF THE WALLET WHEN YOU MAKE IT
+
+BACKUP YOUR SEED PHRASE WITH EITHER A SCREEN SHOT AND ALSO LABEL THE SCREENSHOT WITH THE VERSION EITHER 4.2.2 or 4.1.5 DEPENDING ON THE WALLET IT WAS MADe WITH TO
+SAFEGUARD YOUR KEYS
