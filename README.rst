@@ -1,3 +1,6 @@
+
+# IMPORTANT READ THIS FIRST BEFORE BUILDING OR DOWNLOADING A RELEASE ABOUT SEED PHRASE IMPORT / EXPORT BETWEEN VERIONS
+
 Electrum - Lightweight Bitcoin client
 =====================================
 
