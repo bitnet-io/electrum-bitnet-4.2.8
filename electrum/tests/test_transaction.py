@@ -164,7 +164,7 @@ class TestTransaction(Electrum-BITTestCase):
                          convert_raw_tx_to_hex('64XF-8+PM6*4IYN-QWW$B2QLNW+:C8-$I$-+T:L.6DKXTSWSFFONDP1J/MOS3SPK0-SYVW38U9.3+A1/*2HTHQTJGP79LVEK-IITQJ1H.C/X$NSOV$8DWR6JAFWXD*LX4-EN0.BDOF+PPYPH16$NM1H.-MAA$V1SCP0Q.6Y5FR822S6K-.5K5F.Z4Q:0SDRG-4GEBLAO4W9Z*H-$1-KDYAFOGF675W0:CK5M1LT92IG:3X60P3GKPM:X2$SP5A7*LT9$-TTEG0/DRZYV$7B4ADL9CVS5O7YG.J64HLZ24MVKO/-GV:V.T/L$D3VQ:MR8--44HK8W'))
 
     def test_get_address_from_output_script(self):
-        # the inverse of this test is in test_bitcoin: test_address_to_script
+        # the inverse of this test is in test_bitnet: test_address_to_script
         addr_from_script = lambda script: transaction.get_address_from_output_script(bfh(script))
 
         # bech32/bech32m native segwit
