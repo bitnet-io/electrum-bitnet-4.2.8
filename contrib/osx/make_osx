@@ -91,6 +91,7 @@ VENV_DIR="$CONTRIB_OSX/build-venv"
 rm -rf "$VENV_DIR"
 python3 -m venv $VENV_DIR
 source $VENV_DIR/bin/activate
+python3 -m pip install Kivy cchardet
 
 info "Installing build dependencies"
 python3 -m pip install --no-build-isolation --no-dependencies --no-warn-script-location \
@@ -154,21 +155,21 @@ git submodule update --init
 rm  -rf "$BUILDDIR" > /dev/null 2>&1
 mkdir "$BUILDDIR"
 
-info "generating locale"
-(
-    if ! which msgfmt > /dev/null 2>&1; then
-        brew install gettext
-        brew link --force gettext
-    fi
-    cd "$CONTRIB"/deterministic-build/electrum-locale
-    # we want the binary to have only compiled (.mo) locale files; not source (.po) files
-    rm -rf "$PROJECT_ROOT/electrum/locale/"
-    for i in ./locale/*; do
-        dir="$PROJECT_ROOT/electrum/$i/LC_MESSAGES"
-        mkdir -p "$dir"
-        msgfmt --output-file="$dir/electrum.mo" "$i/electrum.po" || true
-    done
-) || fail "failed generating locale"
+#info "generating locale"
+#(
+#    if ! which msgfmt > /dev/null 2>&1; then
+#        brew install gettext
+#        brew link --force gettext
+#    fi
+#    cd "$CONTRIB"/deterministic-build/electrum-locale
+#    # we want the binary to have only compiled (.mo) locale files; not source (.po) files
+#    rm -rf "$PROJECT_ROOT/electrum/locale/"
+#    for i in ./locale/*; do
+#        dir="$PROJECT_ROOT/electrum/$i/LC_MESSAGES"
+#        mkdir -p "$dir"
+#        msgfmt --output-file="$dir/electrum.mo" "$i/electrum.po" || true
+#    done
+#) || fail "failed generating locale"
 
 
 if [ ! -f "$PROJECT_ROOT"/electrum/libsecp256k1.0.dylib ]; then
@@ -179,13 +180,13 @@ else
 fi
 cp "$PROJECT_ROOT"/electrum/libsecp256k1.0.dylib "$CONTRIB"/osx
 
-if [ ! -f "$PROJECT_ROOT"/electrum/libzbar.0.dylib ]; then
-    info "Building ZBar dylib..."
-    "$CONTRIB"/make_zbar.sh || fail "Could not build ZBar dylib"
-else
-    info "Skipping ZBar build: reusing already built dylib."
-fi
-cp "$PROJECT_ROOT"/electrum/libzbar.0.dylib "$CONTRIB"/osx
+#if [ ! -f "$PROJECT_ROOT"/electrum/libzbar.0.dylib ]; then
+#    info "Building ZBar dylib..."
+#    "$CONTRIB"/make_zbar.sh || fail "Could not build ZBar dylib"
+#else
+#    info "Skipping ZBar build: reusing already built dylib."
+#fi
+#cp "$PROJECT_ROOT"/electrum/libzbar.0.dylib "$CONTRIB"/osx
 
 if [ ! -f "$PROJECT_ROOT"/electrum/libusb-1.0.dylib ]; then
     info "Building libusb dylib..."
