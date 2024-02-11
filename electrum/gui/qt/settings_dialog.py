@@ -402,8 +402,8 @@ class SettingsDialog(WindowModalDialog):
 
         # Fiat Currency
         hist_checkbox = QCheckBox()
-        hist_capgains_checkbox = QCheckBox()
-        fiat_address_checkbox = QCheckBox()
+#        hist_capgains_checkbox = QCheckBox()
+#        fiat_address_checkbox = QCheckBox()
         ccy_combo = QComboBox()
         ex_combo = QComboBox()
 
@@ -420,14 +420,14 @@ class SettingsDialog(WindowModalDialog):
             hist_checkbox.setChecked(self.fx.get_history_config())
             hist_checkbox.setEnabled(self.fx.is_enabled())
 
-        def update_fiat_address_cb():
-            if not self.fx: return
-            fiat_address_checkbox.setChecked(self.fx.get_fiat_address_config())
+#        def update_fiat_address_cb():
+#            if not self.fx: return
+#            fiat_address_checkbox.setChecked(self.fx.get_fiat_address_config())
 
         def update_history_capgains_cb():
             if not self.fx: return
-            hist_capgains_checkbox.setChecked(self.fx.get_history_capital_gains_config())
-            hist_capgains_checkbox.setEnabled(hist_checkbox.isChecked())
+#            hist_capgains_checkbox.setChecked(self.fx.get_history_capital_gains_config())
+#            hist_capgains_checkbox.setEnabled(hist_checkbox.isChecked())
 
         def update_exchanges():
             if not self.fx: return
@@ -484,20 +484,20 @@ class SettingsDialog(WindowModalDialog):
         update_currencies()
         update_history_cb()
         update_history_capgains_cb()
-        update_fiat_address_cb()
+#        update_fiat_address_cb()
         update_exchanges()
         ccy_combo.currentIndexChanged.connect(on_currency)
         hist_checkbox.stateChanged.connect(on_history)
-        hist_capgains_checkbox.stateChanged.connect(on_history_capgains)
-        fiat_address_checkbox.stateChanged.connect(on_fiat_address)
+#        hist_capgains_checkbox.stateChanged.connect(on_history_capgains)
+#        fiat_address_checkbox.stateChanged.connect(on_fiat_address)
         ex_combo.currentIndexChanged.connect(on_exchange)
 
         fiat_widgets = []
         fiat_widgets.append((QLabel(_('Fiat currency')), ccy_combo))
         fiat_widgets.append((QLabel(_('Source')), ex_combo))
         fiat_widgets.append((QLabel(_('Show history rates')), hist_checkbox))
-        fiat_widgets.append((QLabel(_('Show capital gains in history')), hist_capgains_checkbox))
-        fiat_widgets.append((QLabel(_('Show Fiat balance for addresses')), fiat_address_checkbox))
+#        fiat_widgets.append((QLabel(_('Show capital gains in history')), hist_capgains_checkbox))
+#        fiat_widgets.append((QLabel(_('Show Fiat balance for addresses')), fiat_address_checkbox))
 
         tabs_info = [
             (gui_widgets, _('General')),
