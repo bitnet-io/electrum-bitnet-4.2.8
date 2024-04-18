@@ -5,7 +5,6 @@ cd contrib/build-wine
 docker build -t electrum-wine-builder-img .
 ./build-binary.sh
 
-enter the docker guest
 
 cd /opt/wine64/drive_c/electrum
 ./make_win.sh
