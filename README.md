@@ -3,8 +3,8 @@
 ```
 cd contrib/build-wine
 docker build -t electrum-wine-builder-img .
-./build-binary.sh
-
+cd ../../
+./contrib/build-wine/build-binary.sh
 
 cd /opt/wine64/drive_c/electrum
 ./make_win.sh
