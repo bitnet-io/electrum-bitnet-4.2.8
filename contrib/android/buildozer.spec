@@ -1,10 +1,10 @@
 [app]
 
 # (str) Title of your application
-title = Electrum-WAF
+title = Electrum-BIT
 
 # (str) Package name
-package.name = Waifu
+package.name = Bitnet
 
 # (str) Package domain (needed for android/ios packaging)
 package.domain = org.electrum

@@ -4,7 +4,7 @@
 title = Electrum-BIT
 
 # (str) Package name
-package.name = Uraniumx
+package.name = Bitnet
 
 # (str) Package domain (needed for android/ios packaging)
 package.domain = org.electrum

@@ -2,13 +2,13 @@
 # sudo desktop-file-install electrum.desktop
 
 [Desktop Entry]
-Comment=Lightweight UraniumX Client
+Comment=Lightweight Bitnet Client
 Exec=sh -c "PATH=\"\\$HOME/.local/bin:\\$PATH\"; electrum %u"
-GenericName[en_US]=UraniumX Wallet
-GenericName=UraniumX Wallet
+GenericName[en_US]=Bitnet Wallet
+GenericName=Bitnet Wallet
 Icon=electrum
-Name[en_US]=Electrum UraniumX Wallet
-Name=Electrum UraniumX Wallet
+Name[en_US]=Electrum Bitnet Wallet
+Name=Electrum Bitnet Wallet
 Categories=Finance;Network;
 StartupNotify=true
 StartupWMClass=electrum

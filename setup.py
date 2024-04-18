@@ -88,10 +88,10 @@ setup(
     include_package_data=True,
     scripts=['electrum/electrum'],
     data_files=data_files,
-    description="Lightweight UraniumX Wallet",
+    description="Lightweight Bitnet Wallet",
     author="Thomas Voegtlin",
     author_email="thomasv@electrum.org",
     license="MIT Licence",
     url="https://electrum.org",
-    long_description="""Lightweight UraniumX Wallet""",
+    long_description="""Lightweight Bitnet Wallet""",
 )
