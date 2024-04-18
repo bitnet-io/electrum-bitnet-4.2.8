@@ -10,6 +10,13 @@ cd /opt/wine64/drive_c/electrum
 ./make_win.sh
 
 ```
+# Linux AppImage
+```
+cd contrib/build-linux/appimage
+docker build -t electrum-appimage-builder-img .
+cd ../../..
+./contrib/build-linux/appimage/build-binary.sh
+```
 
 # macOS python3.10 , xcode command line tools)
 
