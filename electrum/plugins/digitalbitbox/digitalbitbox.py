@@ -1,5 +1,5 @@
 # ----------------------------------------------------------------------------------
-# Electrum-BIT plugin for the Digital Bitbox hardware wallet by Shift Devices AG
+# Electrum plugin for the Digital Bitbox hardware wallet by Shift Devices AG
 # digitalbitbox.com
 #
 
@@ -116,7 +116,7 @@ class DigitalBitbox_Client(HardwareClientBase):
             # only ever returns the mainnet standard type, but it is agnostic
             # to the type when signing.
             if xtype != 'standard' or constants.net.TESTNET:
-                node = BIP32Node.from_xkey(xpub, net=constants.BitcoinMainnet)
+                node = BIP32Node.from_xkey(xpub, net=constants.BitnetIOMainnet)
                 xpub = node._replace(xtype=xtype).to_xpub()
             return xpub
         else:
@@ -208,7 +208,7 @@ class DigitalBitbox_Client(HardwareClientBase):
 
         # Initialize device if not yet initialized
         if not self.setupRunning:
-            self.isInitialized = True # Wallet exists. Electrum-BIT code later checks if the device matches the wallet
+            self.isInitialized = True # Wallet exists. Electrum code later checks if the device matches the wallet
         elif not self.isInitialized:
             reply = self.hid_send_encrypt(b'{"device":"info"}')
             if reply['device']['id'] != "":
@@ -303,7 +303,7 @@ class DigitalBitbox_Client(HardwareClientBase):
 
     def dbb_generate_wallet(self):
         key = self.stretch_key(self.password)
-        filename = ("Electrum-BIT-" + time.strftime("%Y-%m-%d-%H-%M-%S") + ".pdf")
+        filename = ("Electrum-" + time.strftime("%Y-%m-%d-%H-%M-%S") + ".pdf")
         msg = ('{"seed":{"source": "create", "key": "%s", "filename": "%s", "entropy": "%s"}}' % (key, filename, to_hexstr(os.urandom(32)))).encode('utf8')
         reply = self.hid_send_encrypt(msg)
         if 'error' in reply:
@@ -455,7 +455,7 @@ class DigitalBitbox_KeyStore(Hardware_KeyStore):
         raise RuntimeError(_('Encryption and decryption are currently not supported for {}').format(self.device))
 
 
-    def sign_message(self, sequence, message, password, *, script_type=None):
+    def sign_message(self, sequence, message, password):
         sig = None
         try:
             message = message.encode('utf8')
@@ -491,7 +491,7 @@ class DigitalBitbox_KeyStore(Hardware_KeyStore):
                 sig_string = binascii.unhexlify(reply['sign'][0]['sig'])
                 recid = int(reply['sign'][0]['recid'], 16)
                 sig = ecc.construct_sig65(sig_string, recid, True)
-                pubkey, compressed, txin_type_guess = ecc.ECPubkey.from_signature65(sig, msg_hash)
+                pubkey, compressed = ecc.ECPubkey.from_signature65(sig, msg_hash)
                 addr = public_key_to_p2pkh(pubkey.get_public_key_bytes(compressed=compressed))
                 if ecc.verify_message_with_address(addr, sig, message) is False:
                     raise Exception(_("Could not sign message"))

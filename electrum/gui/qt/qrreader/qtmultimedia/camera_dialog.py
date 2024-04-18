@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Electron Cash - lightweight Bitcoin client
+# Electron Cash - lightweight BitnetIO client
 # Copyright (C) 2019 Axel Gembe <derago@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person
@@ -213,8 +213,8 @@ class QrReaderCameraDialog(Logger, MessageBoxMixin, QDialog):
         """
         Returns a QRect that is scan_size x scan_size in the middle of the resolution
         """
-        scan_pos_x = (resolution.width() - scan_size) // 2
-        scan_pos_y = (resolution.height() - scan_size) // 2
+        scan_pos_x = (resolution.width() - scan_size) / 2
+        scan_pos_y = (resolution.height() - scan_size) / 2
         return QRect(scan_pos_x, scan_pos_y, scan_size, scan_size)
 
     @staticmethod

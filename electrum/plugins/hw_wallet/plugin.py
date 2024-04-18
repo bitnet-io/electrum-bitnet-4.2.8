@@ -1,8 +1,8 @@
 #!/usr/bin/env python2
 # -*- mode: python -*-
 #
-# Electrum-BIT - lightweight Bitcoin client
-# Copyright (C) 2016  The Electrum-BIT developers
+# Electrum - lightweight BitnetIO client
+# Copyright (C) 2016  The Electrum developers
 #
 # Permission is hereby granted, free of charge, to any person
 # obtaining a copy of this software and associated documentation files
@@ -66,14 +66,13 @@ class HW_PluginBase(BasePlugin):
         return self.parent.device_manager
 
     def create_device_from_hid_enumeration(self, d: dict, *, product_key) -> Optional['Device']:
-        # note: id_ needs to be unique between simultaneously connected devices,
-        #       and ideally unchanged while a device is connected.
         # Older versions of hid don't provide interface_number
         interface_number = d.get('interface_number', -1)
         usage_page = d['usage_page']
-        # id_=str(d['path']) in itself might be sufficient, but this had to be touched
-        # a number of times already, so let's just go for the overkill approach:
-        id_ = f"{d['path']},{d['serial_number']},{interface_number},{usage_page}"
+        id_ = d['serial_number']
+        if len(id_) == 0:
+            id_ = str(d['path'])
+        id_ += str(interface_number) + str(usage_page)
         device = Device(path=d['path'],
                         interface_number=interface_number,
                         id_=id_,
@@ -126,7 +125,7 @@ class HW_PluginBase(BasePlugin):
         if keystore is None:
             keystore = wallet.get_keystore()
         if not is_address(address):
-            keystore.handler.show_error(_('Invalid Bitcoin Address'))
+            keystore.handler.show_error(_('Invalid BitnetIO Address'))
             return False
         if not wallet.is_mine(address):
             keystore.handler.show_error(_('Address not in wallet.'))

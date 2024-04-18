@@ -55,7 +55,7 @@ Builder.load_string('''
                 SettingsItem:
                     bu: app.base_unit
                     title: _('Denomination') + ': ' + self.bu
-                    description: _("Base unit for Bitcoin amounts.")
+                    description: _("Base unit for BitnetIO amounts.")
                     action: partial(root.unit_dialog, self)
                 CardSeparator
                 SettingsItem:
@@ -136,7 +136,7 @@ class SettingsDialog(Factory.Popup):
         self.wallet = self.app.wallet
         self.use_encryption = self.wallet.has_password() if self.wallet else False
         self.has_pin_code = self.app.has_pin_code()
-        self.enable_toggle_use_recoverable_channels = bool(self.wallet.lnworker and self.wallet.lnworker.can_have_recoverable_channels())
+        self.enable_toggle_use_recoverable_channels = bool(self.wallet.lnworker and self.wallet.lnworker.has_deterministic_node_id())
 
     def get_language_name(self) -> str:
         lang = self.config.get('language') or ''

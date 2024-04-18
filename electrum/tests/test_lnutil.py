@@ -9,12 +9,12 @@ from electrum.lnutil import (RevocationStore, get_per_commitment_secret_from_see
                              derive_pubkey, make_htlc_tx, extract_ctn_from_tx, UnableToDeriveSecret,
                              get_compressed_pubkey_from_bech32, split_host_port, ConnStringFormatError,
                              ScriptHtlc, extract_nodeid, calc_fees_for_commitment_tx, UpdateAddHtlc, LnFeatures,
-                             ln_compare_features, IncompatibleLightningFeatures, ChannelType)
+                             ln_compare_features, IncompatibleLightningFeatures)
 from electrum.util import bh2u, bfh, MyEncoder
 from electrum.transaction import Transaction, PartialTransaction
 from electrum.lnworker import LNWallet
 
-from . import Electrum-BITTestCase
+from . import ElectrumTestCase
 
 
 funding_tx_id = '8984484a580b825b9972d7adb15050b3ab624ccd731946b3eeddb92f4e7ef6be'
@@ -38,7 +38,7 @@ local_revocation_pubkey = bytes.fromhex('0212a140cd0c6539d07cd08dfe09984dec3251e
 # funding wscript = 5221023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb21030e9f7b623d2ccc7c9bd44d66d5ce21ce504c0acf6385a132cec6d3c39fa711c152ae
 
 
-class TestLNUtil(Electrum-BITTestCase):
+class TestLNUtil(ElectrumTestCase):
     def test_shachain_store(self):
         tests = [
             {
@@ -890,15 +890,3 @@ class TestLNUtil(Electrum-BITTestCase):
         self.assertEqual(
             None,
             LNWallet._decode_channel_update_msg(bytes.fromhex("0101") + msg_without_prefix))
-
-    def test_channel_type(self):
-        # test compliance and non compliance with LN features
-        features = LnFeatures(LnFeatures.BASIC_MPP_OPT | LnFeatures.OPTION_STATIC_REMOTEKEY_OPT)
-        self.assertTrue(ChannelType.OPTION_STATIC_REMOTEKEY.complies_with_features(features))
-
-        features = LnFeatures(LnFeatures.BASIC_MPP_OPT | LnFeatures.OPTION_TRAMPOLINE_ROUTING_OPT)
-        self.assertFalse(ChannelType.OPTION_STATIC_REMOTEKEY.complies_with_features(features))
-
-        # ignore unknown channel types
-        channel_type = ChannelType(0b10000000001000000000010).discard_unknown_and_check()
-        self.assertEqual(ChannelType(0b10000000001000000000000), channel_type)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Electrum-BIT - lightweight Bitcoin client
+# Electrum - lightweight BitnetIO client
 # Copyright (C) 2013 ecdsa@github
 #
 # Permission is hereby granted, free of charge, to any person
@@ -70,7 +70,7 @@ class SeedLayout(QVBoxLayout):
 
         seed_types = [
             (value, title) for value, title in (
-                ('electrum', _('Electrum-BIT')),
+                ('electrum', _('Electrum')),
                 ('bip39', _('BIP39 seed')),
                 ('slip39', _('SLIP39 seed')),
             )
@@ -92,15 +92,15 @@ class SeedLayout(QVBoxLayout):
                 if self.seed_type == 'bip39':
                     msg = ' '.join([
                         '<b>' + _('Warning') + ':</b>  ',
-                        _('BIP39 seeds can be imported in Electrum-BIT, so that users can access funds locked in other wallets.'),
+                        _('BIP39 seeds can be imported in Electrum, so that users can access funds locked in other wallets.'),
                         _('However, we do not generate BIP39 seeds, because they do not meet our safety standard.'),
                         _('BIP39 seeds do not include a version number, which compromises compatibility with future software.'),
-                        _('We do not guarantee that BIP39 imports will always be supported in Electrum-BIT.'),
+                        _('We do not guarantee that BIP39 imports will always be supported in Electrum.'),
                     ])
                 elif self.seed_type == 'slip39':
                     msg = ' '.join([
                         '<b>' + _('Warning') + ':</b>  ',
-                        _('SLIP39 seeds can be imported in Electrum-BIT, so that users can access funds locked in other wallets.'),
+                        _('SLIP39 seeds can be imported in Electrum, so that users can access funds locked in other wallets.'),
                         _('However, we do not generate SLIP39 seeds.'),
                     ])
                 else:
@@ -368,7 +368,7 @@ class KeysLayout(QVBoxLayout):
 class SeedDialog(WindowModalDialog):
 
     def __init__(self, parent, seed, passphrase, *, config: 'SimpleConfig'):
-        WindowModalDialog.__init__(self, parent, ('Electrum-BIT - ' + _('Seed')))
+        WindowModalDialog.__init__(self, parent, ('Electrum - ' + _('Seed')))
         self.setMinimumWidth(400)
         vbox = QVBoxLayout(self)
         title =  _("Your wallet generation seed is:")

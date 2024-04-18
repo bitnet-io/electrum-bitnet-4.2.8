@@ -1,4 +1,4 @@
-# Electrum-BIT - Lightweight Bitcoin Client
+# Electrum - Lightweight BitnetIO Client
 # Copyright (c) 2011-2016 Thomas Voegtlin
 #
 # Permission is hereby granted, free of charge, to any person
@@ -40,12 +40,12 @@ import copy
 import functools
 
 import aiorpcx
-from aiorpcx import ignore_after
+from aiorpcx import TaskGroup, ignore_after
 from aiohttp import ClientResponse
 
 from . import util
-from .util import (log_exceptions, ignore_exceptions, OldTaskGroup,
-                   bfh, make_aiohttp_session, send_exception_to_crash_reporter,
+from .util import (log_exceptions, ignore_exceptions,
+                   bfh, SilentTaskGroup, make_aiohttp_session, send_exception_to_crash_reporter,
                    is_hash256_str, is_non_negative_integer, MyEncoder, NetworkRetryManager,
                    nullcontext)
 from .bitcoin import COIN
@@ -202,7 +202,7 @@ class TxBroadcastHashMismatch(TxBroadcastError):
     def get_message_for_gui(self):
         return "{}\n{}\n\n{}" \
             .format(_("The server returned an unexpected transaction ID when broadcasting the transaction."),
-                    _("Consider trying to connect to a different server, or updating Electrum-BIT."),
+                    _("Consider trying to connect to a different server, or updating Electrum."),
                     str(self))
 
 
@@ -210,7 +210,7 @@ class TxBroadcastServerReturnedError(TxBroadcastError):
     def get_message_for_gui(self):
         return "{}\n{}\n\n{}" \
             .format(_("The server returned an error when broadcasting the transaction."),
-                    _("Consider trying to connect to a different server, or updating Electrum-BIT."),
+                    _("Consider trying to connect to a different server, or updating Electrum."),
                     str(self))
 
 
@@ -218,7 +218,7 @@ class TxBroadcastUnknownError(TxBroadcastError):
     def get_message_for_gui(self):
         return "{}\n{}" \
             .format(_("Unknown error when broadcasting the transaction."),
-                    _("Consider trying to connect to a different server, or updating Electrum-BIT."))
+                    _("Consider trying to connect to a different server, or updating Electrum."))
 
 
 class UntrustedServerReturnedError(NetworkException):
@@ -246,7 +246,7 @@ class Network(Logger, NetworkRetryManager[ServerAddr]):
 
     LOGGING_SHORTCUT = 'n'
 
-    taskgroup: Optional[OldTaskGroup]
+    taskgroup: Optional[TaskGroup]
     interface: Optional[Interface]
     interfaces: Dict[ServerAddr, Interface]
     _connecting_ifaces: Set[ServerAddr]
@@ -437,7 +437,7 @@ class Network(Logger, NetworkRetryManager[ServerAddr]):
 
     def is_connected(self):
         interface = self.interface
-        return interface is not None and interface.is_connected_and_ready()
+        return interface is not None and interface.ready.done()
 
     def is_connecting(self):
         return self.connection_status == 'connecting'
@@ -462,7 +462,7 @@ class Network(Logger, NetworkRetryManager[ServerAddr]):
         async def get_relay_fee():
             self.relay_fee = await interface.get_relay_fee()
 
-        async with OldTaskGroup() as group:
+        async with TaskGroup() as group:
             await group.spawn(get_banner)
             await group.spawn(get_donation_address)
             await group.spawn(get_server_peers)
@@ -707,19 +707,11 @@ class Network(Logger, NetworkRetryManager[ServerAddr]):
 
         i = self.interfaces[server]
         if old_interface != i:
-            if not i.is_connected_and_ready():
-                return
             self.logger.info(f"switching to {server}")
+            assert i.ready.done(), "interface we are switching to is not ready yet"
             blockchain_updated = i.blockchain != self.blockchain()
             self.interface = i
-            try:
-                await i.taskgroup.spawn(self._request_server_info(i))
-            except RuntimeError as e:  # see #7677
-                if len(e.args) >= 1 and e.args[0] == 'task group terminated':
-                    self.logger.warning(f"tried to switch to {server} but interface.taskgroup is already dead.")
-                    self.interface = None
-                    return
-                raise
+            await i.taskgroup.spawn(self._request_server_info(i))
             util.trigger_callback('default_server_changed')
             self.default_server_changed_event.set()
             self.default_server_changed_event.clear()
@@ -766,8 +758,6 @@ class Network(Logger, NetworkRetryManager[ServerAddr]):
         util.trigger_callback('network_updated')
 
     def get_network_timeout_seconds(self, request_type=NetworkTimeout.Generic) -> int:
-        if self.config.get('network_timeout', None):
-            return int(self.config.get('network_timeout'))
         if self.oneserver and not self.auto_connect:
             return request_type.MOST_RELAXED
         if self.proxy:
@@ -849,7 +839,7 @@ class Network(Logger, NetworkRetryManager[ServerAddr]):
                 assert iface.ready.done(), "interface not ready yet"
                 # try actual request
                 try:
-                    async with OldTaskGroup(wait=any) as group:
+                    async with TaskGroup(wait=any) as group:
                         task = await group.spawn(func(self, *args, **kwargs))
                         await group.spawn(iface.got_disconnected.wait())
                 except RequestTimedOut:
@@ -912,7 +902,7 @@ class Network(Logger, NetworkRetryManager[ServerAddr]):
 
     @staticmethod
     def sanitize_tx_broadcast_response(server_msg) -> str:
-        # Unfortunately, bitcoind and hence the Electrum-BIT protocol doesn't return a useful error code.
+        # Unfortunately, bitcoind and hence the Electrum protocol doesn't return a useful error code.
         # So, we use substring matching to grok the error message.
         # server_msg is untrusted input so it should not be shown to the user. see #4968
         server_msg = str(server_msg)
@@ -1194,7 +1184,7 @@ class Network(Logger, NetworkRetryManager[ServerAddr]):
 
     async def _start(self):
         assert not self.taskgroup
-        self.taskgroup = taskgroup = OldTaskGroup()
+        self.taskgroup = taskgroup = SilentTaskGroup()
         assert not self.interface and not self.interfaces
         assert not self._connecting_ifaces
         assert not self._closing_ifaces
@@ -1205,17 +1195,19 @@ class Network(Logger, NetworkRetryManager[ServerAddr]):
         await self.taskgroup.spawn(self._run_new_interface(self.default_server))
 
         async def main():
-            self.logger.info(f"starting taskgroup ({hex(id(taskgroup))}).")
+            self.logger.info("starting taskgroup.")
             try:
                 # note: if a task finishes with CancelledError, that
                 # will NOT raise, and the group will keep the other tasks running
                 async with taskgroup as group:
                     await group.spawn(self._maintain_sessions())
                     [await group.spawn(job) for job in self._jobs]
+            except asyncio.CancelledError:
+                raise
             except Exception as e:
-                self.logger.exception(f"taskgroup died ({hex(id(taskgroup))}).")
+                self.logger.exception("taskgroup died.")
             finally:
-                self.logger.info(f"taskgroup stopped ({hex(id(taskgroup))}).")
+                self.logger.info("taskgroup stopped.")
         asyncio.run_coroutine_threadsafe(main(), self.asyncio_loop)
 
         util.trigger_callback('network_updated')
@@ -1235,7 +1227,7 @@ class Network(Logger, NetworkRetryManager[ServerAddr]):
         # timeout: if full_shutdown, it is up to the caller to time us out,
         #          otherwise if e.g. restarting due to proxy changes, we time out fast
         async with (nullcontext() if full_shutdown else ignore_after(1)):
-            async with OldTaskGroup() as group:
+            async with TaskGroup() as group:
                 await group.spawn(self.taskgroup.cancel_remaining())
                 if full_shutdown:
                     await group.spawn(self.stop_gossip(full_shutdown=full_shutdown))
@@ -1248,13 +1240,13 @@ class Network(Logger, NetworkRetryManager[ServerAddr]):
             util.trigger_callback('network_updated')
 
     async def _ensure_there_is_a_main_interface(self):
-        if self.interface:
+        if self.is_connected():
             return
         # if auto_connect is set, try a different server
         if self.auto_connect and not self.is_connecting():
             await self._switch_to_random_interface()
         # if auto_connect is not set, or still no main interface, retry current
-        if not self.interface and not self.is_connecting():
+        if not self.is_connected() and not self.is_connecting():
             if self._can_retry_addr(self.default_server, urgent=True):
                 await self.switch_to_interface(self.default_server)
 
@@ -1281,9 +1273,15 @@ class Network(Logger, NetworkRetryManager[ServerAddr]):
                     await self.interface.taskgroup.spawn(self._request_fee_estimates, self.interface)
 
         while True:
-            await maybe_start_new_interfaces()
-            await maintain_healthy_spread_of_connected_servers()
-            await maintain_main_interface()
+            try:
+                await maybe_start_new_interfaces()
+                await maintain_healthy_spread_of_connected_servers()
+                await maintain_main_interface()
+            except asyncio.CancelledError:
+                # suppress spurious cancellations
+                group = self.taskgroup
+                if not group or group.closed():
+                    raise
             await asyncio.sleep(0.1)
 
     @classmethod
@@ -1333,19 +1331,11 @@ class Network(Logger, NetworkRetryManager[ServerAddr]):
         session = self.interface.session
         return parse_servers(await session.send_request('server.peers.subscribe'))
 
-    async def send_multiple_requests(
-            self,
-            servers: Sequence[ServerAddr],
-            method: str,
-            params: Sequence,
-            *,
-            timeout: int = None,
-    ):
-        if timeout is None:
-            timeout = self.get_network_timeout_seconds(NetworkTimeout.Urgent)
+    async def send_multiple_requests(self, servers: Sequence[ServerAddr], method: str, params: Sequence):
         responses = dict()
         async def get_response(server: ServerAddr):
             interface = Interface(network=self, server=server, proxy=self.proxy)
+            timeout = self.get_network_timeout_seconds(NetworkTimeout.Urgent)
             try:
                 await asyncio.wait_for(interface.ready, timeout)
             except BaseException as e:
@@ -1356,16 +1346,7 @@ class Network(Logger, NetworkRetryManager[ServerAddr]):
             except Exception as e:
                 res = e
             responses[interface.server] = res
-        async with OldTaskGroup() as group:
+        async with TaskGroup() as group:
             for server in servers:
                 await group.spawn(get_response(server))
         return responses
-
-    async def prune_offline_servers(self, hostmap):
-        peers = filter_protocol(hostmap, allowed_protocols=("t", "s",))
-        timeout = self.get_network_timeout_seconds(NetworkTimeout.Generic)
-        replies = await self.send_multiple_requests(peers, 'blockchain.headers.subscribe', [], timeout=timeout)
-        servers_replied = {serveraddr.host for serveraddr in replies.keys()}
-        servers_dict = {k: v for k, v in hostmap.items()
-                        if k in servers_replied}
-        return servers_dict

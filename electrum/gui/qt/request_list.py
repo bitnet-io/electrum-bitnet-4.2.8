@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Electrum-BIT - lightweight Bitcoin client
+# Electrum - lightweight BitnetIO client
 # Copyright (C) 2015 Thomas Voegtlin
 #
 # Permission is hereby granted, free of charge, to any person
@@ -48,7 +48,6 @@ ROLE_SORT_ORDER = Qt.UserRole + 2
 
 
 class RequestList(MyTreeView):
-    key_role = ROLE_KEY
 
     class Columns(IntEnum):
         DATE = 0
@@ -112,14 +111,32 @@ class RequestList(MyTreeView):
         super().clearSelection()
         self.selectionModel().clearCurrentIndex()
 
-    def refresh_row(self, key, row):
+    def refresh_status(self):
+        m = self.std_model
+        for r in range(m.rowCount()):
+            idx = m.index(r, self.Columns.STATUS)
+            date_idx = idx.sibling(idx.row(), self.Columns.DATE)
+            date_item = m.itemFromIndex(date_idx)
+            status_item = m.itemFromIndex(idx)
+            key = date_item.data(ROLE_KEY)
+            req = self.wallet.get_request(key)
+            if req:
+                status = self.parent.wallet.get_request_status(key)
+                status_str = req.get_status_str(status)
+                status_item.setText(status_str)
+                status_item.setIcon(read_QIcon(pr_icons.get(status)))
+
+    def update_item(self, key, invoice: Invoice):
         model = self.std_model
-        request = self.wallet.get_request(key)
-        if request is None:
+        for row in range(0, model.rowCount()):
+            item = model.item(row, 0)
+            if item.data(ROLE_KEY) == key:
+                break
+        else:
             return
         status_item = model.item(row, self.Columns.STATUS)
         status = self.parent.wallet.get_request_status(key)
-        status_str = request.get_status_str(status)
+        status_str = invoice.get_status_str(status)
         status_item.setText(status_str)
         status_item.setIcon(read_QIcon(pr_icons.get(status)))
 
@@ -159,15 +176,14 @@ class RequestList(MyTreeView):
         self.proxy.setDynamicSortFilter(True)
         # sort requests by date
         self.sortByColumn(self.Columns.DATE, Qt.DescendingOrder)
-        self.hide_if_empty()
-
-    def hide_if_empty(self):
-        b = self.std_model.rowCount() > 0
-        self.setVisible(b)
-        self.parent.receive_requests_label.setVisible(b)
-        if not b:
-            # list got hidden, so selected item should also be cleared:
-            self.item_changed(None)
+        # hide list if empty
+        if self.parent.isVisible():
+            b = self.std_model.rowCount() > 0
+            self.setVisible(b)
+            self.parent.receive_requests_label.setVisible(b)
+            if not b:
+                # list got hidden, so selected item should also be cleared:
+                self.item_changed(None)
 
     def create_menu(self, position):
         items = self.selected_in_column(0)
@@ -193,8 +209,8 @@ class RequestList(MyTreeView):
             menu.addAction(_("Copy Request"), lambda: self.parent.do_copy(req.invoice, title='Lightning Request'))
         else:
             URI = self.wallet.get_request_URI(req)
-            menu.addAction(_("Copy Request"), lambda: self.parent.do_copy(URI, title='Bitcoin URI'))
-            menu.addAction(_("Copy Address"), lambda: self.parent.do_copy(req.get_address(), title='Bitcoin Address'))
+            menu.addAction(_("Copy Request"), lambda: self.parent.do_copy(URI, title='BitnetIO URI'))
+            menu.addAction(_("Copy Address"), lambda: self.parent.do_copy(req.get_address(), title='BitnetIO Address'))
         #if 'view_url' in req:
         #    menu.addAction(_("View in web browser"), lambda: webopen(req['view_url']))
         menu.addAction(_("Delete"), lambda: self.parent.delete_requests([key]))

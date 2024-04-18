@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Electrum-BIT - lightweight Bitcoin client
+# Electrum - lightweight Radiocoin client
 # Copyright (C) 2015 Thomas Voegtlin
 #
 # Permission is hereby granted, free of charge, to any person
@@ -69,18 +69,27 @@ except:
 
 # note: this list needs to be kept in sync with another in kivy
 TX_ICONS = [
-    "unconfirmed.png",
-    "warning.png",
-    "offline_tx.png",
-    "offline_tx.png",
-    "clock1.png",
-    "clock2.png",
-    "clock3.png",
-    "clock4.png",
-    "clock5.png",
+#    "unconfirmed.png",
+ #   "warning.png",
+  #  "offline_tx.png",
+ #   "offline_tx.png",
+  #  "clock1.png",
+  #  "clock2.png",
+ #   "clock3.png",
+ #   "clock4.png",
+ #   "clock5.png",
+ #   "confirmed.png",
+
+    "confirmed.png",
+    "confirmed.png",
+    "confirmed.png",
+    "confirmed.png",
+    "confirmed.png",
+    "confirmed.png",
+    "confirmed.png",
+    "confirmed.png",
     "confirmed.png",
 ]
-
 
 ROLE_SORT_ORDER = Qt.UserRole + 1000
 
@@ -589,13 +598,13 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
         grid.addWidget(QLabel(self.format_date(start_date)), 1, 1)
         grid.addWidget(QLabel(self.format_date(end_date)), 1, 2)
         #
-        grid.addWidget(QLabel(_("BIT balance")), 2, 0)
-        grid.addWidget(QLabel(format_amount(start['BIT_balance'])), 2, 1)
-        grid.addWidget(QLabel(format_amount(end['BIT_balance'])), 2, 2)
+        grid.addWidget(QLabel(_("BTC balance")), 2, 0)
+        grid.addWidget(QLabel(format_amount(start['BTC_balance'])), 2, 1)
+        grid.addWidget(QLabel(format_amount(end['BTC_balance'])), 2, 2)
         #
-        grid.addWidget(QLabel(_("BIT Fiat price")), 3, 0)
-        grid.addWidget(QLabel(format_fiat(start.get('BIT_fiat_price'))), 3, 1)
-        grid.addWidget(QLabel(format_fiat(end.get('BIT_fiat_price'))), 3, 2)
+        grid.addWidget(QLabel(_("BTC Fiat price")), 3, 0)
+        grid.addWidget(QLabel(format_fiat(start.get('BTC_fiat_price'))), 3, 1)
+        grid.addWidget(QLabel(format_fiat(end.get('BTC_fiat_price'))), 3, 2)
         #
         grid.addWidget(QLabel(_("Fiat balance")), 4, 0)
         grid.addWidget(QLabel(format_fiat(start.get('fiat_balance'))), 4, 1)
@@ -610,12 +619,12 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
         grid.addWidget(QLabel(format_fiat(end.get('unrealized_gains', ''))), 6, 2)
         #
         grid2 = QGridLayout()
-        grid2.addWidget(QLabel(_("BIT incoming")), 0, 0)
-        grid2.addWidget(QLabel(format_amount(flow['BIT_incoming'])), 0, 1)
+        grid2.addWidget(QLabel(_("BTC incoming")), 0, 0)
+        grid2.addWidget(QLabel(format_amount(flow['BTC_incoming'])), 0, 1)
         grid2.addWidget(QLabel(_("Fiat incoming")), 1, 0)
         grid2.addWidget(QLabel(format_fiat(flow.get('fiat_incoming'))), 1, 1)
-        grid2.addWidget(QLabel(_("BIT outgoing")), 2, 0)
-        grid2.addWidget(QLabel(format_amount(flow['BIT_outgoing'])), 2, 1)
+        grid2.addWidget(QLabel(_("BTC outgoing")), 2, 0)
+        grid2.addWidget(QLabel(format_amount(flow['BTC_outgoing'])), 2, 1)
         grid2.addWidget(QLabel(_("Fiat outgoing")), 3, 0)
         grid2.addWidget(QLabel(format_fiat(flow.get('fiat_outgoing'))), 3, 1)
         #
@@ -803,7 +812,7 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
         try:
             self.do_export_history(filename, csv_button.isChecked())
         except (IOError, os.error) as reason:
-            export_error_label = _("Electrum-BIT was unable to produce a transaction export.")
+            export_error_label = _("Electrum was unable to produce a transaction export.")
             self.parent.show_critical(export_error_label + "\n" + str(reason), title=_("Unable to export history"))
             return
         self.parent.show_message(_("Your wallet history has been successfully exported."))

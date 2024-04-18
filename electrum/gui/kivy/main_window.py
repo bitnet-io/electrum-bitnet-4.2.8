@@ -436,7 +436,7 @@ class ElectrumWindow(App, Logger):
         self._settings_dialog = None
         self._channels_dialog = None
         self._addresses_dialog = None
-        self.set_fee_status()
+#        self.set_fee_status()
         self.invoice_popup = None
         self.request_popup = None
 
@@ -629,7 +629,7 @@ class ElectrumWindow(App, Logger):
         self.fiat_unit = self.fx.ccy if self.fx.is_enabled() else ''
         # default tab
         self.switch_to('history')
-        # bind intent for bitnet: URI scheme
+        # bind intent for bitcoin: URI scheme
         if platform == 'android':
             from android import activity
             from jnius import autoclass
@@ -1005,7 +1005,7 @@ class ElectrumWindow(App, Logger):
 
     def format_fee_rate(self, fee_rate):
         # fee_rate is in sat/kB
-        return format_fee_satoshis(fee_rate/1000) + ' sat/byte'
+        return format_fee_satoshis(fee_rate/1000) + ' radiowaves/byte'
 
     #@profiler
     def update_wallet(self, *dt):
@@ -1225,7 +1225,7 @@ class ElectrumWindow(App, Logger):
         fee_dialog.open()
 
     def set_fee_status(self):
-        target, tooltip, dyn = self.electrum_config.get_fee_target()
+#        target, tooltip, dyn = self.electrum_config.get_fee_target()
         self.fee_status = target
 
     def on_fee(self, event, *arg):
@@ -1373,14 +1373,9 @@ class ElectrumWindow(App, Logger):
             if not grant_results or not grant_results[0]:
                 self.show_error(_("Cannot save backup without STORAGE permission"))
                 return
-            try:
-                backup_dir = util.android_backup_dir()
-            except OSError as e:
-                self.logger.exception("Cannot save backup")
-                self.show_error(f"Cannot save backup: {e!r}")
-                return
             # note: Clock.schedule_once is a hack so that we get called on a non-daemon thread
             #       (needed for WalletDB.write)
+            backup_dir = util.android_backup_dir()
             Clock.schedule_once(lambda dt: self._save_backup(backup_dir))
         request_permissions([Permission.WRITE_EXTERNAL_STORAGE], cb)
 

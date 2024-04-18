@@ -12,7 +12,7 @@ import subprocess
 from setuptools import setup, find_packages
 from setuptools.command.install import install
 
-MIN_PYTHON_VERSION = "3.8.0"
+MIN_PYTHON_VERSION = "3.6.1"
 _min_python_version_tuple = tuple(map(int, (MIN_PYTHON_VERSION.split("."))))
 
 
@@ -46,7 +46,7 @@ if platform.system() in ['Linux', 'FreeBSD', 'DragonFly']:
         else:
             usr_share = os.path.expanduser('~/.local/share')
     data_files += [
-        (os.path.join(usr_share, 'applications/'), ['electrum.desktop']),
+        (os.path.join(usr_share, 'applications/'), ['electrum-urx.desktop']),
         (os.path.join(usr_share, icons_dirname), ['electrum/gui/icons/electrum.png']),
     ]
 
@@ -65,7 +65,7 @@ extras_require['fast'] = extras_require['crypto']
 
 
 setup(
-    name="Electrum",
+    name="Electrum-BIT",
     version=version.ELECTRUM_VERSION,
     python_requires='>={}'.format(MIN_PYTHON_VERSION),
     install_requires=requirements,
@@ -88,10 +88,10 @@ setup(
     include_package_data=True,
     scripts=['electrum/electrum'],
     data_files=data_files,
-    description="Lightweight Bitcoin Wallet",
+    description="Lightweight UraniumX Wallet",
     author="Thomas Voegtlin",
     author_email="thomasv@electrum.org",
     license="MIT Licence",
     url="https://electrum.org",
-    long_description="""Lightweight Bitcoin Wallet""",
+    long_description="""Lightweight UraniumX Wallet""",
 )

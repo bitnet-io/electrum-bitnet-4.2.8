@@ -7,7 +7,7 @@ import attr
 from .json_db import StoredObject
 from .i18n import _
 from .util import age, InvoiceError
-from .lnaddr import lndecode, LnAddr
+#from .lnaddr import lndecode, LnAddr
 from . import constants
 from .bitcoin import COIN, TOTAL_COIN_SUPPLY_LIMIT_IN_BIT
 from .transaction import PartialTxOutput
@@ -44,7 +44,7 @@ pr_color = {
 
 pr_tooltips = {
     PR_UNPAID:_('Unpaid'),
-    PR_PAID:_('Paid'),
+    PR_PAID:_('Confirmed'),
     PR_UNKNOWN:_('Unknown'),
     PR_EXPIRED:_('Expired'),
     PR_INFLIGHT:_('In progress'),
@@ -56,10 +56,10 @@ pr_tooltips = {
 PR_DEFAULT_EXPIRATION_WHEN_CREATING = 0  # 1 day
 pr_expiration_values = {
     0: _('Never'),
-    0: _('Never'),
-    0: _('Never'),
-    0: _('Never'),
-    0: _('Never'),
+#    10*60: _('10 minutes'),
+ #   60*60: _('1 hour'),
+  #  24*60*60: _('1 day'),
+   # 7*24*60*60: _('1 week'),
 }
 assert PR_DEFAULT_EXPIRATION_WHEN_CREATING in pr_expiration_values
 
@@ -178,10 +178,10 @@ class LNInvoice(Invoice):
             raise InvoiceError(f"unexpected amount: {value!r}")
 
     @property
-    def _lnaddr(self) -> LnAddr:
-        if self.__lnaddr is None:
-            self.__lnaddr = lndecode(self.invoice)
-        return self.__lnaddr
+#    def _lnaddr(self) -> LnAddr:
+ #       if self.__lnaddr is None:
+  #          self.__lnaddr = lndecode(self.invoice)
+   #     return self.__lnaddr
 
     @property
     def rhash(self) -> str:
@@ -230,7 +230,7 @@ class LNInvoice(Invoice):
         d = self.to_json()
         d.update({
             'pubkey': self._lnaddr.pubkey.serialize().hex(),
-            'amount_BIT': str(self._lnaddr.amount),
+            'amount_BTC': str(self._lnaddr.amount),
             'rhash': self._lnaddr.paymenthash.hex(),
             'description': self._lnaddr.get_description(),
             'exp': self._lnaddr.get_expiry(),

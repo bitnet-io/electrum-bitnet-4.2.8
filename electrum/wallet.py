@@ -1,4 +1,4 @@
-# Electrum-BIT - lightweight Bitcoin client
+# Electrum - lightweight BitnetIO client
 # Copyright (C) 2015 Thomas Voegtlin
 #
 # Permission is hereby granted, free of charge, to any person
@@ -46,15 +46,15 @@ import itertools
 import threading
 import enum
 
-from aiorpcx import timeout_after, TaskTimeout, ignore_after
+from aiorpcx import TaskGroup, timeout_after, TaskTimeout, ignore_after
 
 from .i18n import _
 from .bip32 import BIP32Node, convert_bip32_intpath_to_strpath, convert_bip32_path_to_list_of_uint32
 from .crypto import sha256
 from . import util
-from .util import (NotEnoughFunds, UserCancelled, profiler, OldTaskGroup,
+from .util import (NotEnoughFunds, UserCancelled, profiler,
                    format_satoshis, format_fee_satoshis, NoDynamicFeeEstimates,
-                   WalletFileException, BitcoinException,
+                   WalletFileException, BitnetIOException,
                    InvalidPassword, format_time, timestamp_to_datetime, Satoshis,
                    Fiat, bfh, bh2u, TxMinedInfo, quantize_feerate, create_bip21_uri, OrderedDictWithIndex, parse_max_spend)
 from .simple_config import SimpleConfig, FEE_RATIO_HIGH_WARNING, FEERATE_WARNING_HIGH_FEE
@@ -79,7 +79,7 @@ from .contacts import Contacts
 from .interface import NetworkException
 from .mnemonic import Mnemonic
 from .logging import get_logger
-from .lnworker import LNWallet
+#from .lnworker import LNWallet
 from .paymentrequest import PaymentRequest
 from .util import read_json_file, write_json_file, UserFacingException
 
@@ -134,7 +134,7 @@ async def _append_utxos_to_inputs(*, inputs: List[PartialTxInput], network: 'Net
         inputs.append(txin)
 
     u = await network.listunspent_for_scripthash(scripthash)
-    async with OldTaskGroup() as group:
+    async with TaskGroup() as group:
         for item in u:
             if len(inputs) >= imax:
                 break
@@ -155,7 +155,7 @@ async def sweep_preparations(privkeys, network: 'Network', imax=100):
 
     inputs = []  # type: List[PartialTxInput]
     keypairs = {}
-    async with OldTaskGroup() as group:
+    async with TaskGroup() as group:
         for sec in privkeys:
             txin_type, privkey, compressed = bitcoin.deserialize_privkey(sec)
             await group.spawn(find_utxos_for_privkey(txin_type, privkey, compressed))
@@ -272,7 +272,7 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
 
     txin_type: str
     wallet_type: str
-    lnworker: Optional['LNWallet']
+  #  lnworker: Optional['LNWallet']
 
     def __init__(self, db: WalletDB, storage: Optional[WalletStorage], *, config: SimpleConfig):
         if not db.is_ready_to_be_used_by_wallet():
@@ -361,7 +361,7 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
             self.db.put('lightning_privkey2', ln_xprv)
         if self.network:
             self.network.run_from_another_thread(self.stop())
-        self.lnworker = LNWallet(self, ln_xprv)
+       # self.lnworker = LNWallet(self, ln_xprv)
         if self.network:
             self.start_network(self.network)
 
@@ -795,11 +795,11 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
         self.save_db()
 
     def clear_invoices(self):
-        self.invoices.clear()
+        self.invoices = {}
         self.save_db()
 
     def clear_requests(self):
-        self.receive_requests.clear()
+        self.receive_requests = {}
         self.save_db()
 
     def get_invoices(self):
@@ -867,7 +867,7 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
         for txo in invoice.outputs:  # type: PartialTxOutput
             invoice_amounts[txo.scriptpubkey] += 1 if parse_max_spend(txo.value) else txo.value
         relevant_txs = []
-        with self.lock, self.transaction_lock:
+        with self.transaction_lock:
             for invoice_scriptpubkey, invoice_amt in invoice_amounts.items():
                 scripthash = bitcoin.script_to_scripthash(invoice_scriptpubkey.hex())
                 prevouts_and_values = self.db.get_prevouts_by_scripthash(scripthash)
@@ -1078,7 +1078,7 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
                 out = {
                     'date': date,
                     'block_height': height,
-                    'BIT_balance': Satoshis(balance),
+                    'BTC_balance': Satoshis(balance),
                 }
                 if show_fiat:
                     ap = self.acquisition_price(coins, fx.timestamp_rate, fx.ccy)
@@ -1087,14 +1087,14 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
                     out['liquidation_price'] = Fiat(lp, fx.ccy)
                     out['unrealized_gains'] = Fiat(lp - ap, fx.ccy)
                     out['fiat_balance'] = Fiat(fx.historical_value(balance, date), fx.ccy)
-                    out['BIT_fiat_price'] = Fiat(fx.historical_value(COIN, date), fx.ccy)
+                    out['BTC_fiat_price'] = Fiat(fx.historical_value(COIN, date), fx.ccy)
                 return out
 
             summary_start = summary_point(start_timestamp, start_height, start_balance, start_coins)
             summary_end = summary_point(end_timestamp, end_height, end_balance, end_coins)
             flow = {
-                'BIT_incoming': Satoshis(income),
-                'BIT_outgoing': Satoshis(expenditures)
+                'BTC_incoming': Satoshis(income),
+                'BTC_outgoing': Satoshis(expenditures)
             }
             if show_fiat:
                 flow['fiat_currency'] = fx.ccy
@@ -1193,7 +1193,7 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
             if fee is not None:
                 size = tx.estimated_size()
                 fee_per_byte = fee / size
-                extra.append(format_fee_satoshis(fee_per_byte) + ' sat/b')
+                extra.append(format_fee_satoshis(fee_per_byte) + ' radiowaves/b')
             if fee is not None and height in (TX_HEIGHT_UNCONF_PARENT, TX_HEIGHT_UNCONFIRMED) \
                and self.config.has_fee_mempool():
                 exp_n = self.config.fee_to_depth(fee_per_byte)
@@ -1400,7 +1400,7 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
             #       Given as the user is spending "max", and so might be abandoning the wallet,
             #       try to include all UTXOs, otherwise leftover might remain in the UTXO set
             #       forever. see #5433
-            # note: Actually, it might be the case that not all UTXOs from the wallet are
+            # note: Actually it might be the case that not all UTXOs from the wallet are
             #       being spent if the user manually selected UTXOs.
             sendable = sum(map(lambda c: c.value_sats(), coins))
             for (_,i) in i_max:
@@ -1464,7 +1464,7 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
         The idea here is that an attacker might send us a UTXO in a
         large low-fee unconfirmed tx that will ~never confirm. If we
         spend it as part of a tx ourselves, that too will not confirm
-        (unless we use a high fee, but that might not be worth it for
+        (unless we use a high fee but that might not be worth it for
         a small value UTXO).
         In particular, this test triggers for large "dusting transactions"
         that are used for advertising purposes by some entities.
@@ -1557,7 +1557,7 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
             strategies: Sequence[BumpFeeStrategy] = None,
     ) -> PartialTransaction:
         """Increase the miner fee of 'tx'.
-        'new_fee_rate' is the target min rate in sat/vbyte
+        'new_fee_rate' is the target min rate in radiowaves/vbyte
         'coins' is a list of UTXOs we can choose from as potential new inputs to be added
         """
         txid = txid or tx.txid()
@@ -1830,7 +1830,7 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
     ) -> PartialTransaction:
         """Double-Spend-Cancel: cancel an unconfirmed tx by double-spending
         its inputs, paying ourselves.
-        'new_fee_rate' is the target min rate in sat/vbyte
+        'new_fee_rate' is the target min rate in radiowaves/vbyte
         """
         if not isinstance(tx, PartialTransaction):
             tx = PartialTransaction.from_tx(tx)
@@ -2018,9 +2018,6 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
         tmp_tx = copy.deepcopy(tx)
         tmp_tx.add_info_from_wallet(self, include_xpubs=True)
         # sign. start with ready keystores.
-        # note: ks.ready_to_sign() side-effect: we trigger pairings with potential hw devices.
-        #       We only do this once, before the loop, however we could rescan after each iteration,
-        #       to see if the user connected/disconnected devices in the meantime.
         for k in sorted(self.get_keystores(), key=lambda ks: ks.ready_to_sign(), reverse=True):
             try:
                 if k.can_sign(tmp_tx):
@@ -2114,10 +2111,10 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
         message = self.get_label(addr)
         amount = req.amount_sat
         extra_query_params = {}
-        if req.time:
-            extra_query_params['time'] = str(int(req.time))
-        if req.exp:
-            extra_query_params['exp'] = str(int(req.exp))
+        #if req.time:
+        #    extra_query_params['time'] = str(int(req.time))
+        #if req.exp:
+        #    extra_query_params['exp'] = str(int(req.exp))
         #if req.get('name') and req.get('sig'):
         #    sig = bfh(req.get('sig'))
         #    sig = bitcoin.base_encode(sig, base=58)
@@ -2178,7 +2175,7 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
         is_lightning = x.is_lightning()
         d = {
             'is_lightning': is_lightning,
-            'amount_BIT': format_satoshis(x.get_amount_sat()),
+            'amount_BTC': format_satoshis(x.get_amount_sat()),
             'message': x.message,
             'timestamp': x.time,
             'expiration': x.exp,
@@ -2219,7 +2216,7 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
         is_lightning = x.is_lightning()
         d = {
             'is_lightning': is_lightning,
-            'amount_BIT': format_satoshis(x.get_amount_sat()),
+            'amount_BTC': format_satoshis(x.get_amount_sat()),
             'message': x.message,
             'timestamp': x.time,
             'expiration': x.exp,
@@ -2318,7 +2315,7 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
             addr = req.get_address()
             if sanity_checks:
                 if not bitcoin.is_address(addr):
-                    raise Exception(_('Invalid Bitcoin address.'))
+                    raise Exception(_('Invalid BitnetIO address.'))
                 if not self.is_mine(addr):
                     raise Exception(_('Address not in wallet.'))
             key = addr
@@ -2455,11 +2452,9 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
     def _update_password_for_keystore(self, old_pw: Optional[str], new_pw: Optional[str]) -> None:
         pass
 
-    def sign_message(self, address: str, message: str, password) -> bytes:
+    def sign_message(self, address, message, password):
         index = self.get_address_index(address)
-        script_type = self.get_txin_type(address)
-        assert script_type != "address"
-        return self.keystore.sign_message(index, message, password, script_type=script_type)
+        return self.keystore.sign_message(index, message, password)
 
     def decrypt_message(self, pubkey: str, message, password) -> bytes:
         addr = self.pubkeys_to_address([pubkey])
@@ -2618,16 +2613,19 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
                     + _("Try to raise your transaction fee, or use a server with a lower relay fee."))
             short_warning = _("below relay fee") + "!"
             allow_send = False
+# high fee warning here mod
         elif fee_ratio >= FEE_RATIO_HIGH_WARNING:
             long_warning = (
-                    _('Warning') + ': ' + _("The fee for this transaction seems unusually high.")
-                    + f' ({fee_ratio*100:.2f}% of amount)')
-            short_warning = _("high fee ratio") + "!"
+                    _('') + '' + _("")
+#                    + f' ({fee_ratio*100:.2f}% of amount)')
+                    + f'')
+            short_warning = _("") + ""
         elif feerate > FEERATE_WARNING_HIGH_FEE / 1000:
             long_warning = (
-                    _('Warning') + ': ' + _("The fee for this transaction seems unusually high.")
-                    + f' (feerate: {feerate:.2f} sat/byte)')
-            short_warning = _("high fee rate") + "!"
+                    _('') + '' + _("")
+#                    + f' (feerate: {feerate:.2f} radiowaves/byte)')
+                    + f'')
+            short_warning = _("") + ""
         if long_warning is None:
             return None
         else:
@@ -2746,7 +2744,7 @@ class Imported_Wallet(Simple_Wallet):
         if good_addr and good_addr[0] == address:
             return address
         else:
-            raise BitcoinException(str(bad_addr[0][1]))
+            raise BitnetIOException(str(bad_addr[0][1]))
 
     def delete_address(self, address: str) -> None:
         if not self.db.has_imported_address(address):
@@ -2767,7 +2765,7 @@ class Imported_Wallet(Simple_Wallet):
             transactions_to_remove -= transactions_new
             self.db.remove_addr_history(address)
             for tx_hash in transactions_to_remove:
-                self._remove_transaction(tx_hash)
+                self.remove_transaction(tx_hash)
         self.set_label(address, None)
         self.remove_payment_request(address)
         self.set_frozen_state_of_addresses([address], False)
@@ -2846,7 +2844,7 @@ class Imported_Wallet(Simple_Wallet):
         if good_addr:
             return good_addr[0]
         else:
-            raise BitcoinException(str(bad_keys[0][1]))
+            raise BitnetIOException(str(bad_keys[0][1]))
 
     def get_txin_type(self, address):
         return self.db.get_imported_address(address).get('type', 'address')
@@ -2913,7 +2911,7 @@ class Deterministic_Wallet(Abstract_Wallet):
         ln_xprv = self.db.get('lightning_xprv') or self.db.get('lightning_privkey2')
         # lnworker can only be initialized once receiving addresses are available
         # therefore we instantiate lnworker in DeterministicWallet
-        self.lnworker = LNWallet(self, ln_xprv) if ln_xprv else None
+     #   self.lnworker = LNWallet(self, ln_xprv) if ln_xprv else None
 
     def has_seed(self):
         return self.keystore.has_seed()

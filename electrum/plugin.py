@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Electrum-BIT - lightweight Bitcoin client
+# Electrum - lightweight BitnetIO client
 # Copyright (C) 2015 Thomas Voegtlin
 #
 # Permission is hereby granted, free of charge, to any person
@@ -60,7 +60,7 @@ class Plugins(DaemonThread):
     @profiler
     def __init__(self, config: SimpleConfig, gui_name):
         DaemonThread.__init__(self)
-        self.name = 'Plugins'  # set name of thread
+        self.setName('Plugins')
         self.pkgpath = os.path.dirname(plugins.__file__)
         self.config = config
         self.hw_wallets = {}
@@ -533,6 +533,7 @@ class DeviceMgr(ThreadJob):
                 client = self.force_pair_xpub(plugin, handler, info, xpub, derivation)
         if client:
             handler.update_status(True)
+        if client:
             # note: if select_device was called, we might also update label etc here:
             keystore.opportunistically_fill_in_missing_info_from_device(client)
         self.logger.info("end client for keystore")
@@ -543,8 +544,6 @@ class DeviceMgr(ThreadJob):
         _id = self.xpub_id(xpub)
         client = self._client_by_id(_id)
         if client:
-            if type(client.plugin) != type(plugin):
-                return
             # An unpaired client might have another wallet's handler
             # from a prior scan.  Replace to fix dialog parenting.
             client.handler = handler
@@ -560,7 +559,7 @@ class DeviceMgr(ThreadJob):
         # choose an unpaired device and compare its first address.
         xtype = bip32.xpub_type(xpub)
         client = self._client_by_id(info.device.id_)
-        if client and client.is_pairable() and type(client.plugin) == type(plugin):
+        if client and client.is_pairable():
             # See comment above for same code
             client.handler = handler
             # This will trigger a PIN/passphrase entry request
@@ -576,7 +575,7 @@ class DeviceMgr(ThreadJob):
         # The user input has wrong PIN or passphrase, or cancelled input,
         # or it is not pairable
         raise DeviceUnpairableError(
-            _('Electrum-BIT cannot pair with your {}.\n\n'
+            _('Electrum cannot pair with your {}.\n\n'
               'Before you request bitcoins to be sent to addresses in this '
               'wallet, ensure you can pair with your device, or that you have '
               'its seed (and passphrase, if any).  Otherwise all bitcoins you '
@@ -632,7 +631,7 @@ class DeviceMgr(ThreadJob):
             if not allow_user_interaction:
                 raise CannotAutoSelectDevice()
             msg = _('Please insert your {}').format(plugin.device)
-            if keystore.label and keystore.label not in PLACEHOLDER_HW_CLIENT_LABELS:
+            if keystore.label:
                 msg += ' ({})'.format(keystore.label)
             msg += '. {}\n\n{}'.format(
                 _('Verify the cable is connected and that '
@@ -648,7 +647,6 @@ class DeviceMgr(ThreadJob):
         if keystore.soft_device_id:
             for info in infos:
                 if info.soft_device_id == keystore.soft_device_id:
-                    self.logger.debug(f"select_device. auto-selected(1) {plugin.device}: soft_device_id matched")
                     return info
         # method 2: select device by label
         #           but only if not a placeholder label and only if there is no collision
@@ -657,39 +655,28 @@ class DeviceMgr(ThreadJob):
                 and device_labels.count(keystore.label) == 1):
             for info in infos:
                 if info.label == keystore.label:
-                    self.logger.debug(f"select_device. auto-selected(2) {plugin.device}: label recognised")
                     return info
         # method 3: if there is only one device connected, and we don't have useful label/soft_device_id
         #           saved for keystore anyway, select it
         if (len(infos) == 1
                 and keystore.label in PLACEHOLDER_HW_CLIENT_LABELS
                 and keystore.soft_device_id is None):
-            self.logger.debug(f"select_device. auto-selected(3) {plugin.device}: only one device")
             return infos[0]
 
-        self.logger.debug(f"select_device. auto-select failed for {plugin.device}. {allow_user_interaction=}")
         if not allow_user_interaction:
             raise CannotAutoSelectDevice()
         # ask user to select device manually
-        msg = ""
-        if keystore.label and keystore.label not in PLACEHOLDER_HW_CLIENT_LABELS:
-            msg += _(
-                """Could not automatically pair with device """
-                """for keystore labelled "{}".\n""").format(keystore.label)
-        msg += _("Please select which {} device to use:").format(plugin.device)
+        msg = _("Please select which {} device to use:").format(plugin.device)
         descriptions = ["{label} ({maybe_model}{init}, {transport})"
                         .format(label=info.label or _("An unnamed {}").format(info.plugin_name),
                                 init=(_("initialized") if info.initialized else _("wiped")),
                                 transport=info.device.transport_ui_string,
                                 maybe_model=f"{info.model_name}, " if info.model_name else "")
                         for info in infos]
-        self.logger.debug(f"select_device. prompting user for manual selection of {plugin.device}. "
-                          f"num options: {len(infos)}. options: {infos}")
         c = handler.query_choice(msg, descriptions)
         if c is None:
             raise UserCancelled()
         info = infos[c]
-        self.logger.debug(f"select_device. user manually selected {plugin.device}. device info: {info}")
         # note: updated label/soft_device_id will be saved after pairing succeeds
         return info
 

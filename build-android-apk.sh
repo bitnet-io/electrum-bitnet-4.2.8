@@ -16,7 +16,7 @@ docker run -it -d --rm \
     -v $PWD:/home/user/wspace/electrum \
     -v $PWD/.buildozer/.gradle:/home/user/.gradle \
     --workdir /home/user/wspace/electrum \
-    c4pt/electrum-android-build-apks
+    electrum-android-builder-img
 echo "^^^^ first 4 or 5 numbers or letters of this hash as <docker_vm_hash>" 
 echo "->   docker exec -it <docker_vm_hash> bash"
 echo ""
@@ -35,6 +35,8 @@ echo ""
 echo 'export GRADLE_OPTS="-Dorg.gradle.parallel=true -Dorg.gradle.workers.max=8 -Dorg.gradle.daemon=true -Dorg.gradle.configureondemand=true"'
 echo "" 
 echo ""
-echo "pip install -r contrib/deterministic-build/requirements.txt"
+echo "cd contrib/deterministic/"
+echo "pip install -r requirements.txt"
+echo "cd ../../"
 echo "./contrib/android/make_apk"
 echo ".apk will be located in dist"

@@ -10,7 +10,7 @@ from electrum import segwit_addr
 from electrum.lnutil import UnknownEvenFeatureBits, derive_payment_secret_from_payment_preimage, LnFeatures
 from electrum import constants
 
-from . import Electrum-BITTestCase
+from . import ElectrumTestCase
 
 
 RHASH=unhexlify('0001020304050607080900010203040506070809000102030405060708090102')
@@ -19,7 +19,7 @@ PRIVKEY=unhexlify('e126f68f7eafcc8b74f54d269fe206be715000f94dac067d1c04a8ca3b2db
 PUBKEY=unhexlify('03e7156ae33b0a208d0744199163177e909e80176e55d97a2f221ede0f934dd9ad')
 
 
-class TestBolt11(Electrum-BITTestCase):
+class TestBolt11(ElectrumTestCase):
     def test_shorten_amount(self):
         tests = {
             Decimal(10)/10**12: '10p',
@@ -28,11 +28,10 @@ class TestBolt11(Electrum-BITTestCase):
             Decimal(123)/10**6: '123u',
             Decimal(123)/1000: '123m',
             Decimal(3): '3',
-            Decimal(1000): '1000',
         }
 
         for i, o in tests.items():
-            self.assertEqual(shorten_amount(i), o)
+            assert shorten_amount(i) == o
             assert unshorten_amount(shorten_amount(i)) == i
 
     @staticmethod

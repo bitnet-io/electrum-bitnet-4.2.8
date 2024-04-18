@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Electron Cash - lightweight Bitcoin client
+# Electron Cash - lightweight BitnetIO client
 # Copyright (C) 2019 Axel Gembe <derago@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person
@@ -60,7 +60,7 @@ class QrReaderVideoSurface(QAbstractVideoSurface):
             return False
 
         try:
-            img = QImage(int(frame.bits()), frame.width(), frame.height(), image_format)
+            img = QImage(frame.bits(), frame.width(), frame.height(), image_format)
 
             # Check whether we need to flip the image on any axis
             surface_format = self.surfaceFormat()

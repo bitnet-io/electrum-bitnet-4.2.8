@@ -37,13 +37,15 @@ from .invoices import Invoice
 from .keystore import bip44_derivation
 from .transaction import Transaction, TxOutpoint, tx_from_any, PartialTransaction, PartialTxOutput
 from .logging import Logger
-from .lnutil import LOCAL, REMOTE, FeeUpdate, UpdateAddHtlc, LocalConfig, RemoteConfig, ChannelType
-from .lnutil import ImportedChannelBackupStorage, OnchainChannelBackupStorage
-from .lnutil import ChannelConstraints, Outpoint, ShachainElement
+
+#from .lnutil import LOCAL, REMOTE, FeeUpdate, UpdateAddHtlc, LocalConfig, RemoteConfig, ChannelType
+#from .lnutil import ImportedChannelBackupStorage, OnchainChannelBackupStorage
+#from .lnutil import ChannelConstraints, Outpoint, ShachainElement
+
 from .json_db import StoredDict, JsonDB, locked, modifier
 from .plugin import run_hook, plugin_loaders
 from .paymentrequest import PaymentRequest
-from .submarine_swaps import SwapData
+#from .submarine_swaps import SwapData
 
 if TYPE_CHECKING:
     from .storage import WalletStorage

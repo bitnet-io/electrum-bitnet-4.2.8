@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
-# Electrum-BIT - lightweight Bitcoin client
-# Copyright (C) 2018 The Electrum-BIT developers
+# Electrum - lightweight BitnetIO client
+# Copyright (C) 2018 The Electrum developers
 #
 # Permission is hereby granted, free of charge, to any person
 # obtaining a copy of this software and associated documentation files
@@ -53,7 +53,7 @@ class AbstractNet:
     ADDRTYPE_P2PKH: int
     ADDRTYPE_P2SH: int
     SEGWIT_HRP: str
-    BOLT11_HRP: str
+  #  BOLT11_HRP: str
     GENESIS: str
     BLOCK_HEIGHT_FIRST_LIGHTNING_CHANNELS: int = 0
     BIP44_COIN_TYPE: int
@@ -68,8 +68,7 @@ class AbstractNet:
         return bytes.fromhex(bitcoin.rev_hex(cls.GENESIS))
 
 
-class BitcoinMainnet(AbstractNet):
-
+class BitnetIOMainnet(AbstractNet):
     NET_NAME = "mainnet"
     TESTNET = False
     WIF_PREFIX = 0x9e
@@ -99,16 +98,16 @@ class BitcoinMainnet(AbstractNet):
         'p2wsh':       0x02aa7ed3,  # Zpub
     }
     XPUB_HEADERS_INV = inv_dict(XPUB_HEADERS)
-    BIP44_COIN_TYPE = 0
+
+    BIP44_COIN_TYPE = 1
     LN_REALM_BYTE = 0
-  #  LN_DNS_SEEDS = [
-  #      'nodes.lightning.directory.',
-  #      'lseed.bitnetstats.com.',
-  #      'lseed.darosior.ninja',
-  #  ]
+#    LN_DNS_SEEDS = [
+#'radioblockchain.info',
+#'radiopool.me',
+#]
 
 
-class BitcoinTestnet(AbstractNet):
+class BitnetIOTestnet(AbstractNet):
 
     NET_NAME = "testnet"
     TESTNET = True
@@ -146,7 +145,7 @@ class BitcoinTestnet(AbstractNet):
     ]
 
 
-class BitcoinRegtest(BitcoinTestnet):
+class BitnetIORegtest(BitnetIOTestnet):
 
     NET_NAME = "regtest"
     SEGWIT_HRP = "bcrt"
@@ -157,7 +156,7 @@ class BitcoinRegtest(BitcoinTestnet):
     LN_DNS_SEEDS = []
 
 
-class BitcoinSimnet(BitcoinTestnet):
+class BitnetIOSimnet(BitnetIOTestnet):
 
     NET_NAME = "simnet"
     WIF_PREFIX = 0x64
@@ -171,7 +170,7 @@ class BitcoinSimnet(BitcoinTestnet):
     LN_DNS_SEEDS = []
 
 
-class BitcoinSignet(BitcoinTestnet):
+class BitnetIOSignet(BitnetIOTestnet):
 
     NET_NAME = "signet"
     BOLT11_HRP = "tbs"
@@ -184,24 +183,24 @@ class BitcoinSignet(BitcoinTestnet):
 NETS_LIST = tuple(all_subclasses(AbstractNet))
 
 # don't import net directly, import the module instead (so that net is singleton)
-net = BitcoinMainnet
+net = BitnetIOMainnet
 
 def set_signet():
     global net
-    net = BitcoinSignet
+    net = BitnetIOSignet
 
 def set_simnet():
     global net
-    net = BitcoinSimnet
+    net = BitnetIOSimnet
 
 def set_mainnet():
     global net
-    net = BitcoinMainnet
+    net = BitnetIOMainnet
 
 def set_testnet():
     global net
-    net = BitcoinTestnet
+    net = BitnetIOTestnet
 
 def set_regtest():
     global net
-    net = BitcoinRegtest
+    net = BitnetIORegtest

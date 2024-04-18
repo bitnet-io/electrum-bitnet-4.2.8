@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Electrum-BIT - lightweight Bitcoin client
+# Electrum - lightweight BitnetIO client
 # Copyright (C) 2011 thomasv@gitorious
 #
 # Permission is hereby granted, free of charge, to any person
@@ -38,15 +38,16 @@ import hashlib
 import functools
 
 import aiorpcx
+from aiorpcx import TaskGroup
 from aiorpcx import RPCSession, Notification, NetAddress, NewlineFramer
 from aiorpcx.curio import timeout_after, TaskTimeout
 from aiorpcx.jsonrpc import JSONRPC, CodeMessageError
 from aiorpcx.rawsocket import RSClient
 import certifi
 
-from .util import (ignore_exceptions, log_exceptions, bfh, MySocksProxy,
+from .util import (ignore_exceptions, log_exceptions, bfh, SilentTaskGroup, MySocksProxy,
                    is_integer, is_non_negative_integer, is_hash256_str, is_hex_str,
-                   is_int_or_float, is_non_negative_int_or_float, OldTaskGroup)
+                   is_int_or_float, is_non_negative_int_or_float)
 from . import util
 from . import x509
 from . import pem
@@ -220,19 +221,6 @@ class NotificationSession(RPCSession):
                                                          MAX_INCOMING_MSG_SIZE))
         return NewlineFramer(max_size=max_size)
 
-    async def close(self, *, force_after: int = None):
-        """Closes the connection and waits for it to be closed.
-        We try to flush buffered data to the wire, which can take some time.
-        """
-        if force_after is None:
-            # We give up after a while and just abort the connection.
-            # Note: specifically if the server is running Fulcrum, waiting seems hopeless,
-            #       the connection must be aborted (see https://github.com/cculianu/Fulcrum/issues/76)
-            # Note: if the ethernet cable was pulled or wifi disconnected, that too might
-            #       wait until this timeout is triggered
-            force_after = 1  # seconds
-        await super().close(force_after=force_after)
-
 
 class NetworkException(Exception): pass
 
@@ -372,17 +360,9 @@ class Interface(Logger):
         self.blockchain = None  # type: Optional[Blockchain]
         self._requested_chunks = set()  # type: Set[int]
         self.network = network
+        self.proxy = MySocksProxy.from_proxy_dict(proxy)
         self.session = None  # type: Optional[NotificationSession]
         self._ipaddr_bucket = None
-        # Set up proxy.
-        # - for servers running on localhost, the proxy is not used. If user runs their own server
-        #   on same machine, this lets them enable the proxy (which is used for e.g. FX rates).
-        #   note: we could maybe relax this further and bypass the proxy for all private
-        #         addresses...? e.g. 192.168.x.x
-        if util.is_localhost(server.host):
-            self.logger.info(f"looks like localhost: not using proxy for this server")
-            proxy = None
-        self.proxy = MySocksProxy.from_proxy_dict(proxy)
 
         # Latest block header and corresponding height, as claimed by the server.
         # Note that these values are updated before they are verified.
@@ -396,11 +376,12 @@ class Interface(Logger):
         # Dump network messages (only for this interface).  Set at runtime from the console.
         self.debug = False
 
-        self.taskgroup = OldTaskGroup()
+        self.taskgroup = SilentTaskGroup()
 
         async def spawn_task():
             task = await self.network.taskgroup.spawn(self.run())
-            task.set_name(f"interface::{str(server)}")
+            if sys.version_info >= (3, 8):
+                task.set_name(f"interface::{str(server)}")
         asyncio.run_coroutine_threadsafe(spawn_task(), self.network.asyncio_loop)
 
     @property
@@ -555,9 +536,6 @@ class Interface(Logger):
 
         self.ready.set_result(1)
 
-    def is_connected_and_ready(self) -> bool:
-        return self.ready.done() and not self.got_disconnected.is_set()
-
     async def _save_certificate(self) -> None:
         if not os.path.exists(self.cert_path):
             # we may need to retry this a few times, in case the handshake hasn't completed
@@ -571,7 +549,7 @@ class Interface(Logger):
                         # workaround android bug
                         cert = re.sub("([^\n])-----END CERTIFICATE-----","\\1\n-----END CERTIFICATE-----",cert)
                         f.write(cert)
-                        # even though close flushes, we can't fsync when closed.
+                        # even though close flushes we can't fsync when closed.
                         # and we must flush before fsyncing, cause flush flushes to OS buffer
                         # fsync writes to OS buffer to disk
                         f.flush()
@@ -606,8 +584,6 @@ class Interface(Logger):
         self.logger.info("cert fingerprint verification passed")
 
     async def get_block_header(self, height, assert_mode):
-        if not is_non_negative_integer(height):
-            raise Exception(f"{repr(height)} is not a block height")
         self.logger.info(f'requesting block header {height} in mode {assert_mode}')
         # use lower timeout as we usually have network.bhi_lock here
         timeout = self.network.get_network_timeout_seconds(NetworkTimeout.Urgent)
@@ -685,21 +661,10 @@ class Interface(Logger):
                               JSONRPC.METHOD_NOT_FOUND):
                     raise GracefulDisconnect(e, log_level=logging.WARNING) from e
                 raise
-            finally:
-                self.got_disconnected.set()  # set this ASAP, ideally before any awaits
 
     async def monitor_connection(self):
         while True:
             await asyncio.sleep(1)
-            # If the session/transport is no longer open, we disconnect.
-            # e.g. if the remote cleanly sends EOF, we would handle that here.
-            # note: If the user pulls the ethernet cable or disconnects wifi,
-            #       ideally we would detect that here, so that the GUI/etc can reflect that.
-            #       - On Android, this seems to work reliably , where asyncio.BaseProtocol.connection_lost()
-            #         gets called with e.g. ConnectionAbortedError(103, 'Software caused connection abort').
-            #       - On desktop Linux/Win, it seems BaseProtocol.connection_lost() is not called in such cases.
-            #         Hence, in practice the connection issue will only be detected the next time we try
-            #         to send a message (plus timeout), which can take minutes...
             if not self.session or self.session.is_closing():
                 raise GracefulDisconnect('session was closed')
 
@@ -711,7 +676,7 @@ class Interface(Logger):
     async def request_fee_estimates(self):
         from .simple_config import FEE_ETA_TARGETS
         while True:
-            async with OldTaskGroup() as group:
+            async with TaskGroup() as group:
                 fee_tasks = []
                 for i in FEE_ETA_TARGETS:
                     fee_tasks.append((i, await group.spawn(self.get_estimatefee(i))))
@@ -725,8 +690,13 @@ class Interface(Logger):
 
     async def close(self, *, force_after: int = None):
         """Closes the connection and waits for it to be closed.
-        We try to flush buffered data to the wire, which can take some time.
+        We try to flush buffered data to the wire, so this can take some time.
         """
+        if force_after is None:
+            # We give up after a while and just abort the connection.
+            # Note: specifically if the server is running Fulcrum, waiting seems hopeless,
+            #       the connection must be aborted (see https://github.com/cculianu/Fulcrum/issues/76)
+            force_after = 1  # seconds
         if self.session:
             await self.session.close(force_after=force_after)
         # monitor_connection will cancel tasks
@@ -744,7 +714,7 @@ class Interface(Logger):
             if self.tip < constants.net.max_checkpoint():
                 raise GracefulDisconnect('server tip below max checkpoint')
             self._mark_ready()
-            await self._process_header_at_tip()
+           # await self._process_header_at_tip()
             # header processing done
             util.trigger_callback('blockchain_updated')
             util.trigger_callback('network_updated')
@@ -758,7 +728,7 @@ class Interface(Logger):
                 # another interface amended the blockchain
                 self.logger.info(f"skipping header {height}")
                 return
-            _, height = await self.step(height, header)
+#            _, height = await self.step(height, header)
             # in the simple case, height == self.tip+1
             if height <= self.tip:
                 await self.sync_until(height)
@@ -784,6 +754,7 @@ class Interface(Logger):
                 last, height = await self.step(height)
             assert (prev_last, prev_height) != (last, height), 'had to prevent infinite loop in interface.sync_until'
         return last, height
+
 
     async def step(self, height, header=None):
         assert 0 <= height <= self.tip, (height, self.tip)
@@ -814,7 +785,7 @@ class Interface(Logger):
                 self.blockchain.save_header(header)
             return 'catchup', height
 
-        good, bad, bad_header = await self._search_headers_binary(height, bad, bad_header, chain)
+#        good, bad, bad_header = await self._search_headers_binary(height, bad, bad_header, chain)
         return await self._resolve_potential_chain_fork_given_forkpoint(good, bad, bad_header)
 
     async def _search_headers_binary(self, height, bad, bad_header, chain):
@@ -840,12 +811,12 @@ class Interface(Logger):
 
         mock = 'mock' in bad_header and bad_header['mock']['connect'](height)
         real = not mock and self.blockchain.can_connect(bad_header, check_height=False)
-#        if not real and not mock:
- #           raise Exception('unexpected bad header during binary: {}'.format(bad_header))
-  #      _assert_header_does_not_check_against_any_chain(bad_header)
+    #    if not real and not mock:
+        #    raise Exception('unexpected bad header during binary: {}'.format(bad_header))
+     #   _assert_header_does_not_check_against_any_chain(bad_header)
 
-        self.logger.info(f"binary search exited. good {good}, bad {bad}")
-        return good, bad, bad_header
+#        self.logger.info(f"binary search exited. good {good}, bad {bad}")3
+#        return good, bad, bad_header
 
     async def _resolve_potential_chain_fork_given_forkpoint(self, good, bad, bad_header):
         assert good + 1 == bad
@@ -989,7 +960,7 @@ class Interface(Logger):
             if height in (-1, 0):
                 assert_dict_contains_field(tx_item, field_name='fee')
                 assert_non_negative_integer(tx_item['fee'])
-                prev_height = float("inf")  # this ensures confirmed txs can't follow mempool txs
+                prev_height = - float("inf")  # this ensures confirmed txs can't follow mempool txs
             else:
                 # check monotonicity of heights
                 if height < prev_height:
@@ -1030,7 +1001,7 @@ class Interface(Logger):
         assert_dict_contains_field(res, field_name='confirmed')
         assert_dict_contains_field(res, field_name='unconfirmed')
         assert_non_negative_integer(res['confirmed'])
-        assert_integer(res['unconfirmed'])
+        assert_non_negative_integer(res['unconfirmed'])
         return res
 
     async def get_txid_from_txpos(self, tx_height: int, tx_pos: int, merkle: bool):

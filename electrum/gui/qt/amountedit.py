@@ -39,7 +39,7 @@ class AmountEdit(SizedFreezableLineEdit):
     shortcut = pyqtSignal()
 
     def __init__(self, base_unit, is_int=False, parent=None):
-        # This seems sufficient for hundred-BIT amounts with 8 decimals
+        # This seems sufficient for hundred-BTC amounts with 8 decimals
         width = 16 * char_width_in_lineedit()
         super().__init__(width=width, parent=parent)
         self.base_unit = base_unit
@@ -95,7 +95,7 @@ class AmountEdit(SizedFreezableLineEdit):
         self.setText("%d"%x)
 
 
-class BITAmountEdit(AmountEdit):
+class BTCAmountEdit(AmountEdit):
 
     def __init__(self, decimal_point, is_int=False, parent=None):
         AmountEdit.__init__(self, self._base_unit, is_int, parent)
@@ -128,7 +128,7 @@ class BITAmountEdit(AmountEdit):
         self.repaint()  # macOS hack for #6269
 
 
-class FeerateEdit(BITAmountEdit):
+class FeerateEdit(BTCAmountEdit):
 
     def __init__(self, decimal_point, is_int=False, parent=None):
         super().__init__(decimal_point, is_int, parent)
@@ -138,7 +138,7 @@ class FeerateEdit(BITAmountEdit):
         return 'sat/byte'
 
     def get_amount(self):
-        sat_per_byte_amount = BITAmountEdit.get_amount(self)
+        sat_per_byte_amount = BTCAmountEdit.get_amount(self)
         return quantize_feerate(sat_per_byte_amount)
 
     def setAmount(self, amount):

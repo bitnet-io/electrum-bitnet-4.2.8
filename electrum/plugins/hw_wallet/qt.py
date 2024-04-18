@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- mode: python -*-
 #
-# Electrum-BIT - lightweight Bitcoin client
-# Copyright (C) 2016  The Electrum-BIT developers
+# Electrum - lightweight BitnetIO client
+# Copyright (C) 2016  The Electrum developers
 #
 # Permission is hereby granted, free of charge, to any person
 # obtaining a copy of this software and associated documentation files
@@ -40,7 +40,7 @@ from electrum.gui.qt.installwizard import InstallWizard
 
 from electrum.i18n import _
 from electrum.logging import Logger
-from electrum.util import parse_URI, InvalidBitcoinURI, UserCancelled, UserFacingException
+from electrum.util import parse_URI, InvalidBitnetIOURI, UserCancelled, UserFacingException
 from electrum.plugin import hook, DeviceUnpairableError
 
 from .plugin import OutdatedHwFirmwareException, HW_PluginBase, HardwareHandlerBase

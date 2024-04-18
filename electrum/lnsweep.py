@@ -1,4 +1,4 @@
-# Copyright (C) 2018 The Electrum-BIT developers
+# Copyright (C) 2018 The Electrum developers
 # Distributed under the MIT software license, see the accompanying
 # file LICENCE or http://www.opensource.org/licenses/mit-license.php
 
@@ -7,7 +7,6 @@ from enum import Enum, auto
 
 from .util import bfh, bh2u
 from .bitcoin import redeem_script_to_address, dust_threshold, construct_witness
-from .invoices import PR_PAID
 from . import ecc
 from .lnutil import (make_commitment_output_to_remote_address, make_commitment_output_to_local_witness_script,
                      derive_privkey, derive_pubkey, derive_blinded_pubkey, derive_blinded_privkey,
@@ -62,7 +61,7 @@ def create_sweeptxs_for_watchtower(chan: 'Channel', ctx: Transaction, per_commit
             sweep_address=sweep_address,
             ctx=ctx,
             output_idx=output_idx,
-            witness_script=bfh(witness_script),
+            witness_script=witness_script,
             privkey=other_revocation_privkey,
             is_revocation=True,
             config=chan.lnworker.config)
@@ -81,6 +80,7 @@ def create_sweeptxs_for_watchtower(chan: 'Channel', ctx: Transaction, per_commit
             htlc=htlc,
             ctx_output_idx=ctx_output_idx)
         return create_sweeptx_that_spends_htlctx_that_spends_htlc_in_ctx(
+            to_self_delay=0,
             htlc_tx=htlc_tx,
             htlctx_witness_script=htlc_tx_witness_script,
             sweep_address=sweep_address,
@@ -129,7 +129,7 @@ def create_sweeptx_for_their_revoked_ctx(
             sweep_address=sweep_address,
             ctx=ctx,
             output_idx=output_idx,
-            witness_script=bfh(witness_script),
+            witness_script=witness_script,
             privkey=other_revocation_privkey,
             is_revocation=True,
             config=chan.lnworker.config)
@@ -165,10 +165,11 @@ def create_sweeptx_for_their_revoked_htlc(
     # check that htlc_tx is a htlc
     if htlc_tx.outputs()[0].address != htlc_address:
         return
-    gen_tx = lambda: create_sweeptx_that_spends_htlctx_that_spends_htlc_in_ctx(
+    gen_tx = lambda: create_sweeptx_ctx_to_local(
         sweep_address=sweep_address,
-        htlc_tx=htlc_tx,
-        htlctx_witness_script=bfh(witness_script),
+        ctx=htlc_tx,
+        output_idx=0,
+        witness_script=witness_script,
         privkey=other_revocation_privkey,
         is_revocation=True,
         config=chan.lnworker.config)
@@ -226,7 +227,7 @@ def create_sweeptxs_for_our_ctx(
             sweep_address=sweep_address,
             ctx=ctx,
             output_idx=output_idx,
-            witness_script=bfh(to_local_witness_script),
+            witness_script=to_local_witness_script,
             privkey=our_localdelayed_privkey.get_secret_bytes(),
             is_revocation=False,
             to_self_delay=to_self_delay,
@@ -245,11 +246,12 @@ def create_sweeptxs_for_our_ctx(
 
     # HTLCs
     def create_txns_for_htlc(
-            *, htlc: 'UpdateAddHtlc',
-            htlc_direction: Direction,
-            ctx_output_idx: int,
-            htlc_relative_idx: int,
-            preimage: Optional[bytes]):
+            *, htlc: 'UpdateAddHtlc', htlc_direction: Direction,
+            ctx_output_idx: int, htlc_relative_idx: int):
+        if htlc_direction == RECEIVED:
+            preimage = chan.lnworker.get_preimage(htlc.payment_hash)
+        else:
+            preimage = None
         htlctx_witness_script, htlc_tx = create_htlctx_that_spends_from_our_ctx(
             chan=chan,
             our_pcp=our_pcp,
@@ -289,20 +291,11 @@ def create_sweeptxs_for_our_ctx(
         subject=LOCAL,
         ctn=ctn)
     for (direction, htlc), (ctx_output_idx, htlc_relative_idx) in htlc_to_ctx_output_idx_map.items():
-        if direction == RECEIVED:
-            if chan.lnworker.get_payment_status(htlc.payment_hash) == PR_PAID:
-                preimage = chan.lnworker.get_preimage(htlc.payment_hash)
-            else:
-                # do not redeem this, it might publish the preimage of an incomplete MPP
-                continue
-        else:
-            preimage = None
         create_txns_for_htlc(
             htlc=htlc,
             htlc_direction=direction,
             ctx_output_idx=ctx_output_idx,
-            htlc_relative_idx=htlc_relative_idx,
-            preimage=preimage)
+            htlc_relative_idx=htlc_relative_idx)
     return txs
 
 
@@ -402,10 +395,12 @@ def create_sweeptxs_for_their_ctx(
                 gen_tx=sweep_tx)
     # HTLCs
     def create_sweeptx_for_htlc(
-            *, htlc: 'UpdateAddHtlc',
-            is_received_htlc: bool,
-            ctx_output_idx: int,
-            preimage: Optional[bytes]) -> None:
+            htlc: 'UpdateAddHtlc', is_received_htlc: bool,
+            ctx_output_idx: int) -> None:
+        if not is_received_htlc and not is_revocation:
+            preimage = chan.lnworker.get_preimage(htlc.payment_hash)
+        else:
+            preimage = None
         htlc_output_witness_script = make_htlc_output_witness_script(
             is_received_htlc=is_received_htlc,
             remote_revocation_pubkey=our_revocation_pubkey,
@@ -440,32 +435,18 @@ def create_sweeptxs_for_their_ctx(
         subject=REMOTE,
         ctn=ctn)
     for (direction, htlc), (ctx_output_idx, htlc_relative_idx) in htlc_to_ctx_output_idx_map.items():
-        is_received_htlc = direction == RECEIVED
-        if not is_received_htlc and not is_revocation:
-            if chan.lnworker.get_payment_status(htlc.payment_hash) == PR_PAID:
-                preimage = chan.lnworker.get_preimage(htlc.payment_hash)
-            else:
-                # do not redeem this, it might publish the preimage of an incomplete MPP
-                continue
-        else:
-            preimage = None
         create_sweeptx_for_htlc(
             htlc=htlc,
-            is_received_htlc=is_received_htlc,
-            ctx_output_idx=ctx_output_idx,
-            preimage=preimage)
+            is_received_htlc=direction == RECEIVED,
+            ctx_output_idx=ctx_output_idx)
     return txs
 
 
 def create_htlctx_that_spends_from_our_ctx(
-        chan: 'Channel',
-        our_pcp: bytes,
-        ctx: Transaction,
-        htlc: 'UpdateAddHtlc',
-        local_htlc_privkey: bytes,
-        preimage: Optional[bytes],
-        htlc_direction: Direction,
-        htlc_relative_idx: int,
+        chan: 'Channel', our_pcp: bytes,
+        ctx: Transaction, htlc: 'UpdateAddHtlc',
+        local_htlc_privkey: bytes, preimage: Optional[bytes],
+        htlc_direction: Direction, htlc_relative_idx: int,
         ctx_output_idx: int) -> Tuple[bytes, Transaction]:
     assert (htlc_direction == RECEIVED) == bool(preimage), 'preimage is required iff htlc is received'
     preimage = preimage or b''
@@ -546,9 +527,9 @@ def create_sweeptx_their_ctx_to_remote(
 
 
 def create_sweeptx_ctx_to_local(
-        *, sweep_address: str, ctx: Transaction, output_idx: int, witness_script: bytes,
+        *, sweep_address: str, ctx: Transaction, output_idx: int, witness_script: str,
         privkey: bytes, is_revocation: bool, config: SimpleConfig,
-        to_self_delay: int = None) -> Optional[PartialTransaction]:
+        to_self_delay: int=None) -> Optional[PartialTransaction]:
     """Create a txn that sweeps the 'to_local' output of a commitment
     transaction into our wallet.
 
@@ -560,7 +541,7 @@ def create_sweeptx_ctx_to_local(
     txin = PartialTxInput(prevout=prevout)
     txin._trusted_value_sats = val
     txin.script_sig = b''
-    txin.witness_script = witness_script
+    txin.witness_script = bfh(witness_script)
     sweep_inputs = [txin]
     if not is_revocation:
         assert isinstance(to_self_delay, int)
@@ -580,20 +561,26 @@ def create_sweeptx_ctx_to_local(
 
 def create_sweeptx_that_spends_htlctx_that_spends_htlc_in_ctx(
         *, htlc_tx: Transaction, htlctx_witness_script: bytes, sweep_address: str,
-        privkey: bytes, is_revocation: bool, to_self_delay: int = None,
+        privkey: bytes, is_revocation: bool, to_self_delay: int,
         config: SimpleConfig) -> Optional[PartialTransaction]:
-    """Create a txn that sweeps the output of a second stage htlc tx
-    (i.e. sweeps from an HTLC-Timeout or an HTLC-Success tx).
-    """
-    # note: this is the same as sweeping the to_local output of the ctx,
-    #       as these are the same script (address-reuse).
-    return create_sweeptx_ctx_to_local(
-        sweep_address=sweep_address,
-        ctx=htlc_tx,
-        output_idx=0,
-        witness_script=htlctx_witness_script,
-        privkey=privkey,
-        is_revocation=is_revocation,
-        to_self_delay=to_self_delay,
-        config=config,
-    )
+    val = htlc_tx.outputs()[0].value
+    prevout = TxOutpoint(txid=bfh(htlc_tx.txid()), out_idx=0)
+    txin = PartialTxInput(prevout=prevout)
+    txin._trusted_value_sats = val
+    txin.script_sig = b''
+    txin.witness_script = htlctx_witness_script
+    sweep_inputs = [txin]
+    if not is_revocation:
+        assert isinstance(to_self_delay, int)
+        sweep_inputs[0].nsequence = to_self_delay
+    tx_size_bytes = 200  # TODO
+    fee = config.estimate_fee(tx_size_bytes, allow_fallback_to_static_rates=True)
+    outvalue = val - fee
+    if outvalue <= dust_threshold(): return None
+    sweep_outputs = [PartialTxOutput.from_address_and_value(sweep_address, outvalue)]
+    tx = PartialTransaction.from_io(sweep_inputs, sweep_outputs, version=2)
+    sig = bfh(tx.sign_txin(0, privkey))
+    witness = construct_witness([sig, int(is_revocation), htlctx_witness_script])
+    tx.inputs()[0].witness = bfh(witness)
+    assert tx.is_complete()
+    return tx

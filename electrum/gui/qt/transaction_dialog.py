@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Electrum-BIT - lightweight Bitcoin client
+# Electrum - lightweight BitnetIO client
 # Copyright (C) 2012 thomasv@gitorious
 #
 # Permission is hereby granted, free of charge, to any person
@@ -57,7 +57,7 @@ from .util import (MessageBoxMixin, read_QIcon, Buttons, icon_path,
 
 from .fee_slider import FeeSlider, FeeComboBox
 from .confirm_tx_dialog import TxEditor
-from .amountedit import FeerateEdit, BITAmountEdit
+from .amountedit import FeerateEdit, BTCAmountEdit
 from .locktimeedit import LockTimeEdit
 
 if TYPE_CHECKING:
@@ -87,7 +87,7 @@ def show_transaction(tx: Transaction, *, parent: 'ElectrumWindow', desc=None, pr
         d = TxDialog(tx, parent=parent, desc=desc, prompt_if_unsaved=prompt_if_unsaved)
     except SerializationError as e:
         _logger.exception('unable to deserialize the transaction')
-        parent.show_critical(_("Electrum-BIT was unable to deserialize the transaction:") + "\n" + str(e))
+        parent.show_critical(_("Electrum was unable to deserialize the transaction:") + "\n" + str(e))
     else:
         d.show()
 
@@ -820,7 +820,7 @@ class PreviewTxDialog(BaseTxDialog, TxEditor):
         self.feerate_e.textEdited.connect(partial(self.on_fee_or_feerate, self.feerate_e, False))
         self.feerate_e.editingFinished.connect(partial(self.on_fee_or_feerate, self.feerate_e, True))
 
-        self.fee_e = BITAmountEdit(self.main_window.get_decimal_point)
+        self.fee_e = BTCAmountEdit(self.main_window.get_decimal_point)
         self.fee_e.textEdited.connect(partial(self.on_fee_or_feerate, self.fee_e, False))
         self.fee_e.editingFinished.connect(partial(self.on_fee_or_feerate, self.fee_e, True))
 
@@ -833,7 +833,7 @@ class PreviewTxDialog(BaseTxDialog, TxEditor):
 
         def feerounding_onclick():
             text = (self.feerounding_text + '\n\n' +
-                    _('To somewhat protect your privacy, Electrum-BIT tries to create change with similar precision to other outputs.') + ' ' +
+                    _('To somewhat protect your privacy, Electrum tries to create change with similar precision to other outputs.') + ' ' +
                     _('At most 100 satoshis might be lost due to this rounding.') + ' ' +
                     _("You can disable this setting in '{}'.").format(_('Preferences')) + '\n' +
                     _('Also, dust is not kept as change, but added to the fee.')  + '\n' +

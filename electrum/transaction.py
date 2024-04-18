@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Electrum-BIT - lightweight Bitcoin client
+# Electrum - lightweight BitnetIO client
 # Copyright (C) 2011 Thomas Voegtlin
 #
 # Permission is hereby granted, free of charge, to any person
@@ -80,7 +80,7 @@ class PSBTInputConsistencyFailure(SerializationError):
     pass
 
 
-class MalformedBitcoinScript(Exception):
+class MalformedBitnetIOScript(Exception):
     pass
 
 
@@ -253,8 +253,6 @@ class TxInput:
         return d
 
     def witness_elements(self)-> Sequence[bytes]:
-        if not self.witness:
-            return []
         vds = BCDataStream()
         vds.write(self.witness)
         n = vds.read_compact_size()
@@ -267,7 +265,7 @@ class TxInput:
 
 
 class BCDataStream(object):
-    """Workalike python implementation of Bitcoin's CDataStream class."""
+    """Workalike python implementation of BitnetIO's CDataStream class."""
 
     def __init__(self):
         self.input = None  # type: Optional[bytearray]
@@ -289,7 +287,7 @@ class BCDataStream(object):
         # 0 to 252 :  1-byte-length followed by bytes (if any)
         # 253 to 65,535 : byte'253' 2-byte-length followed by bytes
         # 65,536 to 4,294,967,295 : byte '254' 4-byte-length followed by bytes
-        # ... and the Bitcoin client is coded to understand:
+        # ... and the BitnetIO client is coded to understand:
         # greater than 4,294,967,295 : byte '255' 8-byte-length followed by bytes of string
         # ... but I don't think it actually handles any strings that big.
         if self.input is None:
@@ -399,15 +397,15 @@ def script_GetOp(_bytes : bytes):
             nSize = opcode
             if opcode == opcodes.OP_PUSHDATA1:
                 try: nSize = _bytes[i]
-                except IndexError: raise MalformedBitcoinScript()
+                except IndexError: raise MalformedBitnetIOScript()
                 i += 1
             elif opcode == opcodes.OP_PUSHDATA2:
                 try: (nSize,) = struct.unpack_from('<H', _bytes, i)
-                except struct.error: raise MalformedBitcoinScript()
+                except struct.error: raise MalformedBitnetIOScript()
                 i += 2
             elif opcode == opcodes.OP_PUSHDATA4:
                 try: (nSize,) = struct.unpack_from('<I', _bytes, i)
-                except struct.error: raise MalformedBitcoinScript()
+                except struct.error: raise MalformedBitnetIOScript()
                 i += 4
             vch = _bytes[i:i + nSize]
             i += nSize
@@ -433,23 +431,7 @@ class OPPushDataGeneric:
                or (isinstance(item, type) and issubclass(item, cls))
 
 
-class OPGeneric:
-    def __init__(self, matcher: Callable=None):
-        if matcher is not None:
-            self.matcher = matcher
-
-    def match(self, op) -> bool:
-        return self.matcher(op)
-
-    @classmethod
-    def is_instance(cls, item):
-        # accept objects that are instances of this class
-        # or other classes that are subclasses
-        return isinstance(item, cls) \
-               or (isinstance(item, type) and issubclass(item, cls))
-
 OPPushDataPubkey = OPPushDataGeneric(lambda x: x in (33, 65))
-OP_ANYSEGWIT_VERSION = OPGeneric(lambda x: x in list(range(opcodes.OP_1, opcodes.OP_16 + 1)))
 
 SCRIPTPUBKEY_TEMPLATE_P2PKH = [opcodes.OP_DUP, opcodes.OP_HASH160,
                                OPPushDataGeneric(lambda x: x == 20),
@@ -458,25 +440,9 @@ SCRIPTPUBKEY_TEMPLATE_P2SH = [opcodes.OP_HASH160, OPPushDataGeneric(lambda x: x 
 SCRIPTPUBKEY_TEMPLATE_WITNESS_V0 = [opcodes.OP_0, OPPushDataGeneric(lambda x: x in (20, 32))]
 SCRIPTPUBKEY_TEMPLATE_P2WPKH = [opcodes.OP_0, OPPushDataGeneric(lambda x: x == 20)]
 SCRIPTPUBKEY_TEMPLATE_P2WSH = [opcodes.OP_0, OPPushDataGeneric(lambda x: x == 32)]
-SCRIPTPUBKEY_TEMPLATE_ANYSEGWIT = [OP_ANYSEGWIT_VERSION, OPPushDataGeneric(lambda x: x in list(range(2, 40 + 1)))]
 
 
-def check_scriptpubkey_template_and_dust(scriptpubkey, amount: Optional[int]):
-    if match_script_against_template(scriptpubkey, SCRIPTPUBKEY_TEMPLATE_P2PKH):
-        dust_limit = bitcoin.DUST_LIMIT_P2PKH
-    elif match_script_against_template(scriptpubkey, SCRIPTPUBKEY_TEMPLATE_P2SH):
-        dust_limit = bitcoin.DUST_LIMIT_P2SH
-    elif match_script_against_template(scriptpubkey, SCRIPTPUBKEY_TEMPLATE_P2WSH):
-        dust_limit = bitcoin.DUST_LIMIT_P2WSH
-    elif match_script_against_template(scriptpubkey, SCRIPTPUBKEY_TEMPLATE_P2WPKH):
-        dust_limit = bitcoin.DUST_LIMIT_P2WPKH
-    else:
-        raise Exception(f'scriptpubkey does not conform to any template: {scriptpubkey.hex()}')
-    if amount < dust_limit:
-        raise Exception(f'amount ({amount}) is below dust limit for scriptpubkey type ({dust_limit})')
-
-
-def match_script_against_template(script, template, debug=False) -> bool:
+def match_script_against_template(script, template) -> bool:
     """Returns whether 'script' matches 'template'."""
     if script is None:
         return False
@@ -484,26 +450,16 @@ def match_script_against_template(script, template, debug=False) -> bool:
     if isinstance(script, (bytes, bytearray)):
         try:
             script = [x for x in script_GetOp(script)]
-        except MalformedBitcoinScript:
-            if debug:
-                _logger.debug(f"malformed script")
+        except MalformedBitnetIOScript:
             return False
-    if debug:
-        _logger.debug(f"match script against template: {script}")
     if len(script) != len(template):
-        if debug:
-            _logger.debug(f"length mismatch {len(script)} != {len(template)}")
         return False
     for i in range(len(script)):
         template_item = template[i]
         script_item = script[i]
         if OPPushDataGeneric.is_instance(template_item) and template_item.check_data_len(script_item[0]):
             continue
-        if OPGeneric.is_instance(template_item) and template_item.match(script_item[0]):
-            continue
         if template_item != script_item[0]:
-            if debug:
-                _logger.debug(f"item mismatch at position {i}: {template_item} != {script_item[0]}")
             return False
     return True
 
@@ -512,7 +468,7 @@ def get_script_type_from_output_script(_bytes: bytes) -> Optional[str]:
         return None
     try:
         decoded = [x for x in script_GetOp(_bytes)]
-    except MalformedBitcoinScript:
+    except MalformedBitnetIOScript:
         return None
     if match_script_against_template(decoded, SCRIPTPUBKEY_TEMPLATE_P2PKH):
         return 'p2pkh'
@@ -527,7 +483,7 @@ def get_script_type_from_output_script(_bytes: bytes) -> Optional[str]:
 def get_address_from_output_script(_bytes: bytes, *, net=None) -> Optional[str]:
     try:
         decoded = [x for x in script_GetOp(_bytes)]
-    except MalformedBitcoinScript:
+    except MalformedBitnetIOScript:
         return None
 
     # p2pkh
@@ -855,7 +811,7 @@ class Transaction:
         return bfh(self.serialize())
 
     def serialize_to_network(self, *, estimate_size=False, include_sigs=True, force_legacy=False) -> str:
-        """Serialize the transaction as used on the Bitcoin network, into hex.
+        """Serialize the transaction as used on the BitnetIO network, into hex.
         `include_sigs` signals whether to include scriptSigs and witnesses.
         `force_legacy` signals to use the pre-segwit format
         note: (not include_sigs) implies force_legacy
@@ -1082,8 +1038,8 @@ def tx_from_any(raw: Union[str, bytes], *,
         return PartialTransaction.from_raw_psbt(raw)
     except BadHeaderMagic:
         if raw[:10] == b'EPTF\xff'.hex():
-            raise SerializationError("Partial transactions generated with old Electrum-BIT versions "
-                                     "(< 4.0) are no longer supported. Please upgrade Electrum-BIT on "
+            raise SerializationError("Partial transactions generated with old Electrum versions "
+                                     "(< 4.0) are no longer supported. Please upgrade Electrum on "
                                      "the other machine where this transaction was created.")
     try:
         tx = Transaction(raw)
@@ -1535,7 +1491,7 @@ class PartialTxInput(TxInput, PSBTSection):
                     return False
                 try:
                     decoded = [x for x in script_GetOp(self.redeem_script)]
-                except MalformedBitcoinScript:
+                except MalformedBitnetIOScript:
                     decoded = None
                 # witness version 0
                 if match_script_against_template(decoded, SCRIPTPUBKEY_TEMPLATE_WITNESS_V0):
@@ -2035,7 +1991,10 @@ class PartialTransaction(Transaction):
                     continue
                 pubkey_hex = public_key.get_public_key_hex(compressed=True)
                 if pubkey_hex in pubkeys:
-                    if not public_key.verify_message_hash(sig_string, pre_hash):
+                    try:
+                        public_key.verify_message_hash(sig_string, pre_hash)
+                    except Exception:
+                        _logger.exception('')
                         continue
                     _logger.info(f"adding sig: txin_idx={i}, signing_pubkey={pubkey_hex}, sig={sig}")
                     self.add_signature_to_txin(txin_idx=i, signing_pubkey=pubkey_hex, sig=sig)

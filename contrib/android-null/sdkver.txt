@@ -1,2 +1,0 @@
-export ANDROIDAPI="29"
-export NDKAPI="21"

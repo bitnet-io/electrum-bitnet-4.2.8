@@ -1,4 +1,4 @@
-# Copyright (C) 2019 The Electrum-BIT developers
+# Copyright (C) 2019 The Electrum developers
 # Distributed under the MIT software license, see the accompanying
 # file LICENCE or http://www.opensource.org/licenses/mit-license.php
 
@@ -30,7 +30,7 @@ class UpdateCheck(QDialog, Logger):
 
     def __init__(self, *, latest_version=None):
         QDialog.__init__(self)
-        self.setWindowTitle('Electrum-BIT - ' + _('Update Check'))
+        self.setWindowTitle('Electrum - ' + _('Update Check'))
         self.content = QVBoxLayout()
         self.content.setContentsMargins(*[10]*4)
 
@@ -75,8 +75,8 @@ class UpdateCheck(QDialog, Logger):
         self.pb.hide()
 
     @staticmethod
-    def is_newer(latest_version):
-        return latest_version > StrictVersion(version.ELECTRUM_VERSION)
+#    def is_newer(latest_version):
+#       return latest_version > StrictVersion(version.ELECTRUM_VERSION)
 
     def update_view(self, latest_version=None):
         if latest_version:
@@ -88,10 +88,10 @@ class UpdateCheck(QDialog, Logger):
                 self.detail_label.setText(_("You can download the new version from {}.").format(url))
             else:
                 self.heading_label.setText('<h2>' + _("Already up to date") + '</h2>')
-                self.detail_label.setText(_("You are already on the latest version of Electrum-BIT."))
+                self.detail_label.setText(_("You are already on the latest version of Electrum."))
         else:
             self.heading_label.setText('<h2>' + _("Checking for updates...") + '</h2>')
-            self.detail_label.setText(_("Please wait while Electrum-BIT checks for available updates."))
+            self.detail_label.setText(_("Please wait while Electrum checks for available updates."))
 
 
 class UpdateCheckThread(QThread, Logger):
@@ -124,7 +124,7 @@ class UpdateCheckThread(QThread, Logger):
                     sig = base64.b64decode(sig)
                     msg = version_num.encode('utf-8')
                     if ecc.verify_message_with_address(address=address, sig65=sig, message=msg,
-                                                       net=constants.BitcoinMainnet):
+                                                       net=constants.BitnetIOMainnet):
                         self.logger.info(f"valid sig for version announcement '{version_num}' from address '{address}'")
                         break
                 else:

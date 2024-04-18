@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
-# Electrum-BIT - lightweight Bitcoin client
-# Copyright (C) 2018 The Electrum-BIT developers
+# Electrum - lightweight BitnetIO client
+# Copyright (C) 2018 The Electrum developers
 #
 # Permission is hereby granted, free of charge, to any person
 # obtaining a copy of this software and associated documentation files
@@ -186,7 +186,7 @@ class UnexpectedPasswordHashVersion(InvalidPassword, WalletFileException):
         return "{unexpected}: {version}\n{instruction}".format(
             unexpected=_("Unexpected password hash version"),
             version=self.version,
-            instruction=_('You are most likely using an outdated version of Electrum-BIT. Please update.'))
+            instruction=_('You are most likely using an outdated version of Electrum. Please update.'))
 
 
 class UnsupportedPasswordHashVersion(InvalidPassword, WalletFileException):

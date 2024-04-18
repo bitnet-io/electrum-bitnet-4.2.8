@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Electrum-BIT - lightweight Bitcoin client
+# Electrum - lightweight BitnetIO client
 # Copyright (C) 2014 Thomas Voegtlin
 #
 # Permission is hereby granted, free of charge, to any person
@@ -55,8 +55,8 @@ if TYPE_CHECKING:
 _logger = get_logger(__name__)
 
 
-REQUEST_HEADERS = {'Accept': 'application/bitcoin-paymentrequest', 'User-Agent': 'Electrum-BIT'}
-ACK_HEADERS = {'Content-Type':'application/bitcoin-payment','Accept':'application/bitcoin-paymentack','User-Agent':'Electrum-BIT'}
+REQUEST_HEADERS = {'Accept': 'application/bitcoin-paymentrequest', 'User-Agent': 'Electrum'}
+ACK_HEADERS = {'Content-Type':'application/bitcoin-payment','Accept':'application/bitcoin-paymentack','User-Agent':'Electrum'}
 
 ca_path = certifi.where()
 ca_list = None
@@ -81,7 +81,7 @@ async def get_payment_request(url: str) -> 'PaymentRequest':
                 async with session.get(url) as response:
                     resp_content = await response.read()
                     response.raise_for_status()
-                    # Guard against `bitnet:`-URIs with invalid payment request URLs
+                    # Guard against `bitcoin:`-URIs with invalid payment request URLs
                     if "Content-Type" not in response.headers \
                     or response.headers["Content-Type"] != "application/bitcoin-paymentrequest":
                         data = None
@@ -105,6 +105,13 @@ async def get_payment_request(url: str) -> 'PaymentRequest':
                     _logger.info(f"{error_oneline} -- [DO NOT TRUST THIS MESSAGE] "
                                  f"{repr(e)} text: {error_text_received}")
             data = None
+    elif u.scheme == 'file':
+        try:
+            with open(u.path, 'r', encoding='utf-8') as f:
+                data = f.read()
+        except IOError:
+            data = None
+            error = "payment URL not pointing to a valid file"
     else:
         data = None
         error = f"Unknown scheme for payment request. URL: {url}"
@@ -283,7 +290,7 @@ class PaymentRequest:
         paymnt.transactions.append(bfh(raw_tx))
         ref_out = paymnt.refund_to.add()
         ref_out.script = util.bfh(address_to_script(refund_addr))
-        paymnt.memo = "Paid using Electrum-BIT"
+        paymnt.memo = "Paid using Electrum"
         pm = paymnt.SerializeToString()
         payurl = urllib.parse.urlparse(pay_det.payment_url)
         resp_content = None

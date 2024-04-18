@@ -1,4 +1,4 @@
-# Copyright (C) 2019 The Electrum-BIT developers
+# Copyright (C) 2019 The Electrum developers
 # Distributed under the MIT software license, see the accompanying
 # file LICENCE or http://www.opensource.org/licenses/mit-license.php
 
@@ -250,7 +250,7 @@ root_logger.setLevel(logging.WARNING)
 # Note: this is set up at import-time instead of e.g. as part of a function that is
 #       called from run_electrum (the main script). This is to have this run as early
 #       as possible.
-# Note: some users might use Electrum-BIT as a python library and not use run_electrum,
+# Note: some users might use Electrum as a python library and not use run_electrum,
 #       in which case these logs might never get redirected or cleaned up.
 #       Also, the python docs recommend libraries not to set a handler, to
 #       avoid interfering with the user's logging.
@@ -315,7 +315,7 @@ def configure_logging(config):
     is_android = 'ANDROID_DATA' in os.environ
     if is_android:
         from jnius import autoclass
-        build_config = autoclass("org.electrum.electrum.BuildConfig")
+        build_config = autoclass("org.electrum.bitnet.BuildConfig")
         log_to_file |= bool(build_config.DEBUG)
     if log_to_file:
         log_directory = pathlib.Path(config.path) / "logs"
@@ -337,7 +337,7 @@ def configure_logging(config):
 
     from . import ELECTRUM_VERSION
     from .constants import GIT_REPO_URL
-    _logger.info(f"Electrum-BIT version: {ELECTRUM_VERSION} - https://electrum.org - {GIT_REPO_URL}")
+    _logger.info(f"Electrum version: {ELECTRUM_VERSION} - https://electrum.org - {GIT_REPO_URL}")
     _logger.info(f"Python version: {sys.version}. On platform: {describe_os_version()}")
     _logger.info(f"Logging to file: {str(_logfile_path)}")
     _logger.info(f"Log filters: verbosity {repr(verbosity)}, verbosity_shortcuts {repr(verbosity_shortcuts)}")

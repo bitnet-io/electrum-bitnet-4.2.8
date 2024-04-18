@@ -1,5 +1,5 @@
 #
-# Coldcard Electrum-BIT plugin main code.
+# Coldcard Electrum plugin main code.
 #
 #
 import os, time, io
@@ -37,13 +37,17 @@ try:
     requirements_ok = True
 
 
-    class Electrum-BITColdcardDevice(ColdcardDevice):
+    class ElectrumColdcardDevice(ColdcardDevice):
         # avoid use of pycoin for MiTM message signature test
         def mitm_verify(self, sig, expect_xpub):
             # verify a signature (65 bytes) over the session key, using the master bip32 node
-            # - customized to use specific EC library of Electrum-BIT.
+            # - customized to use specific EC library of Electrum.
             pubkey = BIP32Node.from_xkey(expect_xpub).eckey
-            return pubkey.verify_message_hash(sig[1:65], self.session_key)
+            try:
+                pubkey.verify_message_hash(sig[1:65], self.session_key)
+                return True
+            except:
+                return False
 
 except ImportError as e:
     if not (isinstance(e, ModuleNotFoundError) and e.name == 'ckcc'):
@@ -67,13 +71,13 @@ class CKCCClient(HardwareClientBase):
         self._expected_device = None
 
         if is_simulator:
-            self.dev = Electrum-BITColdcardDevice(dev_path, encrypt=True)
+            self.dev = ElectrumColdcardDevice(dev_path, encrypt=True)
         else:
             # open the real HID device
             hd = hid.device(path=dev_path)
             hd.open_path(dev_path)
 
-            self.dev = Electrum-BITColdcardDevice(dev=hd, encrypt=True)
+            self.dev = ElectrumColdcardDevice(dev=hd, encrypt=True)
 
         # NOTE: MiTM test is delayed until we have a hint as to what XPUB we
         # should expect. It's also kinda slow.
@@ -183,7 +187,7 @@ class CKCCClient(HardwareClientBase):
     def ping_check(self):
         # check connection is working
         assert self.dev.session_key, 'not encrypted?'
-        req = b'1234 Electrum-BIT Plugin 4321'      # free up to 59 bytes
+        req = b'1234 Electrum Plugin 4321'      # free up to 59 bytes
         try:
             echo = self.dev.send_recv(CCProtocolPacker.ping(req))
             assert echo == req
@@ -308,7 +312,7 @@ class Coldcard_KeyStore(Hardware_KeyStore):
         raise UserFacingException(_('Encryption and decryption are currently not supported for {}').format(self.device))
 
     @wrap_busy
-    def sign_message(self, sequence, message, password, *, script_type=None):
+    def sign_message(self, sequence, message, password):
         # Sign a message on device. Since we have big screen, of course we
         # have to show the message unabiguously there first!
         try:
@@ -343,7 +347,7 @@ class Coldcard_KeyStore(Hardware_KeyStore):
             assert len(resp) == 2
             addr, raw_sig = resp
 
-            # already encoded in Bitcoin fashion, binary.
+            # already encoded in BitnetIO fashion, binary.
             assert 40 < len(raw_sig) <= 65
 
             return raw_sig
@@ -412,7 +416,7 @@ class Coldcard_KeyStore(Hardware_KeyStore):
 
     @staticmethod
     def _encode_txin_type(txin_type):
-        # Map from Electrum-BIT code names to our code numbers.
+        # Map from Electrum code names to our code numbers.
         return {'standard': AF_CLASSIC, 'p2pkh': AF_CLASSIC,
                 'p2sh': AF_P2SH,
                 'p2wpkh-p2sh': AF_P2WPKH_P2SH,
@@ -562,7 +566,7 @@ class ColdcardPlugin(HW_PluginBase):
         # it is participating in. All involved Coldcards can share same file.
         assert isinstance(wallet, Multisig_Wallet)
 
-        print('# Exported from Electrum-BIT', file=fp)
+        print('# Exported from Electrum', file=fp)
         print(f'Name: {name:.20s}', file=fp)
         print(f'Policy: {wallet.m} of {wallet.n}', file=fp)
         print(f'Format: {wallet.txin_type.upper()}', file=fp)

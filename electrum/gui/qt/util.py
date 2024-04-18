@@ -783,26 +783,6 @@ class MyTreeView(QTreeView):
         self._pending_update = defer
         return defer
 
-    def find_row_by_key(self, key):
-        for row in range(0, self.std_model.rowCount()):
-            item = self.std_model.item(row, 0)
-            if item.data(self.key_role) == key:
-                return row
-
-    def refresh_all(self):
-        for row in range(0, self.std_model.rowCount()):
-            item = self.std_model.item(row, 0)
-            key = item.data(self.key_role)
-            self.refresh_row(key, row)
-
-    def refresh_item(self, key):
-        row = self.find_row_by_key(key)
-        self.refresh_row(key, row)
-
-    def delete_item(self, key):
-        row = self.find_row_by_key(key)
-        self.std_model.takeRow(row)
-        self.hide_if_empty()
 
 class MySortModel(QSortFilterProxyModel):
     def __init__(self, parent, *, sort_role):
@@ -983,7 +963,8 @@ class ColorScheme:
 
     @staticmethod
     def update_from_widget(widget, force_dark=False):
-        ColorScheme.dark_scheme = bool(force_dark or ColorScheme.has_dark_background(widget))
+        if force_dark or ColorScheme.has_dark_background(widget):
+            ColorScheme.dark_scheme = True
 
 
 class AcceptFileDragDrop:
@@ -1194,8 +1175,8 @@ class FixedAspectRatioLayout(QLayout):
             c_aratio = 1
         s_aratio = self.aspect_ratio
         item_rect = QRect(QPoint(0, 0), QSize(
-            contents.width() if c_aratio < s_aratio else int(contents.height() * s_aratio),
-            contents.height() if c_aratio > s_aratio else int(contents.width() / s_aratio)
+            contents.width() if c_aratio < s_aratio else contents.height() * s_aratio,
+            contents.height() if c_aratio > s_aratio else contents.width() / s_aratio
         ))
 
         content_margins = self.contentsMargins()
@@ -1206,7 +1187,7 @@ class FixedAspectRatioLayout(QLayout):
                 if item.alignment() & Qt.AlignRight:
                     item_rect.moveRight(contents.width() + content_margins.right())
                 else:
-                    item_rect.moveLeft(content_margins.left() + (free_space.width() // 2))
+                    item_rect.moveLeft(content_margins.left() + (free_space.width() / 2))
             else:
                 item_rect.moveLeft(content_margins.left())
 
@@ -1214,7 +1195,7 @@ class FixedAspectRatioLayout(QLayout):
                 if item.alignment() & Qt.AlignBottom:
                     item_rect.moveBottom(contents.height() + content_margins.bottom())
                 else:
-                    item_rect.moveTop(content_margins.top() + (free_space.height() // 2))
+                    item_rect.moveTop(content_margins.top() + (free_space.height() / 2))
             else:
                 item_rect.moveTop(content_margins.top())
 
@@ -1243,10 +1224,10 @@ def QColorLerp(a: QColor, b: QColor, t: float):
     t = max(min(t, 1.0), 0.0)
     i_t = 1.0 - t
     return QColor(
-        int((a.red()   * i_t) + (b.red()   * t)),
-        int((a.green() * i_t) + (b.green() * t)),
-        int((a.blue()  * i_t) + (b.blue()  * t)),
-        int((a.alpha() * i_t) + (b.alpha() * t)),
+        (a.red()   * i_t) + (b.red()   * t),
+        (a.green() * i_t) + (b.green() * t),
+        (a.blue()  * i_t) + (b.blue()  * t),
+        (a.alpha() * i_t) + (b.alpha() * t),
     )
 
 

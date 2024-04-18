@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #
-# Electrum-BIT - lightweight Bitcoin client
-# Copyright (C) 2018 The Electrum-BIT developers
+# Electrum - lightweight BitnetIO client
+# Copyright (C) 2018 The Electrum developers
 #
 # Permission is hereby granted, free of charge, to any person
 # obtaining a copy of this software and associated documentation files

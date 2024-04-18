@@ -1,84 +1,3 @@
-# Release 4.2.2 - (May 27, 2022)
- * Lightning:
-   - watching onchain outputs: significant perf. improvements (#7781)
-   - enforce relative order of some msgs during chan reestablishment,
-     lack of which can lead to unwanted force-closures (#7830)
-   - fix: in case of a force-close containing incoming HTLCs, we were
-     redeeming all HTLCs that we know the preimage for. This might
-     publish the preimage of an incomplete MPP. (1a5ef554, e74e9d8e)
- * Hardware wallets:
-   - smarter pairing during sign_transaction (238619f1)
-   - keepkey: fix pairing with device using a workaround (#7779)
- * fix AppImage failing to run on certain systems (#7784)
- * fix "Automated BIP39 recovery" not scanning change paths (#7804)
- * bypass network proxy for localhost electrum server (#3126)
-
-
-# Release 4.2.1 - (March 26, 2022)
- * Binaries:
-   - Windows: we are dropping support for Windows 7. (#7728)
-     Version 4.2.0 already unintentionally broke compatibility with
-     Win7 and there is no easy way to restore and maintain support.
-     Existing users can keep using version 4.1.5 for now, but should
-     consider upgrading or changing their OS.
-     Win8.1 still works but only Win10 is regularly tested.
-   - bump bundled Python version (win, mac, appimage) to 3.9.11,
-     (android) to 3.8.13 (1bb7ef92, #7721)
-     (note these include a fix to an openssl DOS-vector CVE-2022-0778)
-   - windows: bump pyinstaller to 4.10 and wine to 7.0 (#7721)
- * Kivy GUI:
-   - fix "Child Pays For Parent" not working on Android (#7723)
-   - revert to defaulting the UI language to English (25fee6a6)
- * Qt GUI:
-   - macOS: fix opening "Preferences" segfaulting for some (#7725)
-   - more resilient startup: better error-handling and fallback (#7447)
- * Library:
-   - fix LN error/warning message-handling, and fix regression that
-     errors during channel-open were not properly shown in GUI (a92dede4)
-   - during LN chan open, do not backup wallet automatically (#7733)
-   - Imported wallets: fix delete_address rm-ing too many txs (#7587)
-   - fix potential deadlock in wallet.py (d3476b6b)
- * Hardware wallets:
-   - ledger: add progress indicator to sign_transaction (#7516)
- * fix the "--portable" flag for AppImage, and for pip installs (#7732)
-
-
-# Release 4.2.0 - (March 16, 2022)
- * The minimum python version was increased to 3.8 (#7661)
- * Lightning:
-   - redesigned MPP splitting algorithm (#7202)
-   - trampoline: implement multi-trampoline MPP (#7623)
-   - implement option_shutdown_anysegwit, and allow dust limits
-     below 546 sat (#7542)
-   - implement option_channel_type (#7636)
-   - implement modern closing negotiation (#7586, #7680)
- * improve support for "lightning:" URIs on all platforms (#7301)
- * Qt GUI:
-   - add setting "show amounts with msat precision" (5891e039)
-   - add setting "add thousand separators to bitcoin amounts" (#7427)
- * CLI/RPC:
-   - implement Unix sockets and make them the default (#7545, #7566)
-   - add "bumpfee" command (#7438)
- * Kivy GUI:
-   - show network setup on first start before wallet creation (#7464)
-   - add "Child Pays For Parent" option (#7487)
-   - improved locale handling (22bb52d5, 7cb11ced, 4293d6ec)
- * Hardware wallets:
-   - trezor: bump trezorlib to 0.13 (#7590)
-   - bitbox02: bump bitbox02 to 6.0, support send-to-taproot (#7693)
-   - ledger: support "Ledger Nano S Plus" (#7692)
- * Library:
-   - added support for sighash types beside "ALL" (#7453)
-   - signmessage: also accept Trezor-type sigs for segwit addrs (#7668)
-   - network: make request timeout configurable (#7696)
-   - paytomany (onchain txout batching) now allows multiple max("!")
-     amounts with specified weights (#7492)
- * Binary builds
-   - AppImage: changed base image from ubuntu 16.04 to 18.04 (5d0aa63a)
- * migrated from Travis CI to Cirrus CI (#7431)
- * Lots of other minor bugfixes and usability improvements.
-
-
 # Release 4.1.5 - (July 19, 2021)
  * Builds/binaries:
    - macOS: the .dmg binary should now be reproducible
@@ -309,11 +228,11 @@ below are user-visible.
    - fix some issues with QR scanning by building zbar ourselves (#6593)
    - when using setup exe, also install a debug binary (#6603)
  * Ledger: fix "The derivation path is unusual" warnings (#6512)
-   (needs Bitcoin app 1.4.8+ installed on device)
+   (needs UraniumX app 1.4.8+ installed on device)
  * A few other minor bugfixes and usability improvements.
 
 # Release 4.0.3 - (Sep 11, 2020)
- * PSBT: restore compatibility with Bitcoin Core following CVE-2020-14199:
+ * PSBT: restore compatibility with UraniumX Core following CVE-2020-14199:
    we now allow a PSBT input to have both UTXO and WITNESS_UTXO (#6429).
    (PSBTs created since 4.0.1 already contained UTXO for segwit inputs)
  * Hardware wallets:
@@ -380,7 +299,7 @@ below are user-visible.
      An Electrum daemon can be configured to be used as a remote
      watchtower by setting 'watchtower_address', 'watchtower_user' and
      'watchtower_password'.
- * Partially Signed Bitcoin Transactions (PSBT, BIP-174) are supported
+ * Partially Signed UraniumX Transactions (PSBT, BIP-174) are supported
    (#5721). The previous Electrum partial transaction format is no
    longer supported, i.e. this is an incompatible change. Users should
    make sure that all instances of Electrum they use to co-sign or
@@ -484,7 +403,7 @@ below are user-visible.
  * fix Revealer in Windows and MacOS binaries (#5027)
  * fiat rate providers:
    - added CoinGecko.com and CoinCap.io
-   - BitcoinAverage now only provides historical exchange rates for
+   - UraniumXAverage now only provides historical exchange rates for
      paying customers. Changed default provider to CoinGecko.com (#5188)
  * hardware wallets:
    - Ledger: Nano X is now recognized (#5140)
@@ -523,7 +442,7 @@ below are user-visible.
    hw wallets still need to set udev rules themselves.
  * hw wallets: fix a regression during transaction signing that prompts
    the user too many times for confirmations (commit 2729909)
- * transactions now set nVersion to 2, to mimic Bitcoin Core
+ * transactions now set nVersion to 2, to mimic UraniumX Core
  * fix Qt bug that made all hw wallets unusable on Windows 8.1 (#4960)
  * fix bugs in wallet creation wizard that resulted in corrupted
    wallets being created in rare cases (#5082, #5057)
@@ -534,7 +453,7 @@ below are user-visible.
 
  * Do not expose users to server error messages (#4968)
  * Notify users of new releases. Release announcements must be signed,
-   and they are verified byElectrum using a hardcoded Bitcoin address.
+   and they are verified byElectrum using a hardcoded UraniumX address.
  * Hardware wallet fixes (#4991, #4993, #5006)
  * Display only QR code in QRcode Window
  * Fixed code signing on MacOS
@@ -722,7 +641,7 @@ below are user-visible.
 
  * Memory-pool based fee estimation. Dynamic fees can target a desired
    depth in the memory pool. This feature is optional, and ETA-based
-   estimates from Bitcoin Core are still available. Note that miners
+   estimates from UraniumX Core are still available. Note that miners
    could exploit this feature, if they conspired and filled the memory
    pool with expensive transactions that never get mined. However,
    since the Electrum client already trusts an Electrum server with
@@ -928,7 +847,7 @@ issue #3374. Users should upgrade to 3.0.5.
 # Release 2.9 - Independence (July 27th, 2017)
   * Multiple Chain Validation: Electrum will download and validate
     block headers sent by servers that may follow different branches
-    of a fork in the Bitcoin blockchain. Instead of a linear sequence,
+    of a fork in the UraniumX blockchain. Instead of a linear sequence,
     block headers are organized in a tree structure. Branching points
     are located efficiently using binary search. The purpose of MCV is
     to detect and handle blockchain forks that are invisible to the
@@ -1098,7 +1017,7 @@ issue #3374. Users should upgrade to 3.0.5.
    wallet that has several accounts. Make sure that you have saved
    your seed phrase before you upgrade Electrum.
  * This version introduces a separation between wallets types and
-   keystores types. 'Wallet type' defines the type of Bitcoin contract
+   keystores types. 'Wallet type' defines the type of UraniumX contract
    used in the wallet, while 'keystore type' refers to the method used
    to store private keys. Therefore, so-called 'hardware wallets' will
    be referred to as 'hardware keystores'.
@@ -1235,13 +1154,13 @@ issue #3374. Users should upgrade to 3.0.5.
  * Various GUI improvements
 
 # Release 2.4
- * Payment to DNS names storing a Bitcoin addresses (OpenAlias) is
+ * Payment to DNS names storing a UraniumX addresses (OpenAlias) is
    supported directly, without activating a plugin. The verification
    uses DNSSEC.
  * The DNSSEC verification code was rewritten. The previous code,
    which was part of the OpenAlias plugin, is vulnerable and should
    not be trusted (Electrum 2.0 to 2.3).
- * Payment requests can be signed using Bitcoin addresses stored
+ * Payment requests can be signed using UraniumX addresses stored
    in DNS (OpenAlias). The identity of the requestor is verified using
    DNSSEC.
  * Payment requests signed with OpenAlias keys can be shared as

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Electrum-BIT - lightweight Bitcoin client
+# Electrum - lightweight BitnetIO client
 # Copyright (C) 2014 Thomas Voegtlin
 #
 # Permission is hereby granted, free of charge, to any person
@@ -255,7 +255,7 @@ def seed_type(x: str) -> str:
     elif is_new_seed(x, version.SEED_PREFIX_SW):
         return 'segwit'
     elif is_new_seed(x, version.SEED_PREFIX_2FA) and (num_words == 12 or num_words >= 20):
-        # Note: in Electrum-BIT 2.7, there was a breaking change in key derivation
+        # Note: in Electrum 2.7, there was a breaking change in key derivation
         #       for this seed type. Unfortunately the seed version/prefix was reused,
         #       and now we can only distinguish them based on number of words. :(
         return '2fa'

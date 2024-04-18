@@ -1,8 +1,8 @@
 #!/usr/bin/env python2
 # -*- mode: python -*-
 #
-# Electrum-BIT - lightweight Bitcoin client
-# Copyright (C) 2016  The Electrum-BIT developers
+# Electrum - lightweight BitnetIO client
+# Copyright (C) 2016  The Electrum developers
 #
 # Permission is hereby granted, free of charge, to any person
 # obtaining a copy of this software and associated documentation files
@@ -41,7 +41,7 @@ from .ecc import string_to_number
 from .crypto import (pw_decode, pw_encode, sha256, sha256d, PW_HASH_VERSION_LATEST,
                      SUPPORTED_PW_HASH_VERSIONS, UnsupportedPasswordHashVersion, hash_160)
 from .util import (InvalidPassword, WalletFileException,
-                   BitcoinException, bh2u, bfh, inv_dict, is_hex_str)
+                   BitnetIOException, bh2u, bfh, inv_dict, is_hex_str)
 from .mnemonic import Mnemonic, Wordlist, seed_type, is_seed
 from .plugin import run_hook
 from .logging import Logger
@@ -127,14 +127,7 @@ class KeyStore(Logger, ABC):
         pass
 
     @abstractmethod
-    def sign_message(
-            self,
-            sequence: 'AddressIndexGeneric',
-            message: str,
-            password,
-            *,
-            script_type: Optional[str] = None,
-    ) -> bytes:
+    def sign_message(self, sequence: 'AddressIndexGeneric', message, password) -> bytes:
         pass
 
     @abstractmethod
@@ -182,7 +175,7 @@ class Software_KeyStore(KeyStore):
     def may_have_password(self):
         return not self.is_watching_only()
 
-    def sign_message(self, sequence, message, password, *, script_type=None) -> bytes:
+    def sign_message(self, sequence, message, password) -> bytes:
         privkey, compressed = self.get_private_key(sequence, password)
         key = ecc.ECPrivkey(privkey)
         return key.sign_message(message, compressed)
@@ -847,13 +840,7 @@ class Hardware_KeyStore(Xpub, KeyStore):
     def has_usable_connection_with_device(self) -> bool:
         if not hasattr(self, 'plugin'):
             return False
-        # we try to create a client even if there isn't one already,
-        # but do not prompt the user if auto-select fails:
-        client = self.plugin.get_client(
-            self,
-            force_pair=True,
-            allow_user_interaction=False,
-        )
+        client = self.plugin.get_client(self, force_pair=False)
         if client is None:
             return False
         return client.has_usable_connection_with_device()
@@ -1072,7 +1059,7 @@ def from_seed(seed, passphrase, is_p2sh=False):
             xtype = 'p2wsh' if is_p2sh else 'p2wpkh'
         keystore.add_xprv_from_seed(bip32_seed, xtype, der)
     else:
-        raise BitcoinException('Unexpected seed type {}'.format(repr(t)))
+        raise BitnetIOException('Unexpected seed type {}'.format(repr(t)))
     return keystore
 
 def from_private_key_list(text):
@@ -1104,5 +1091,5 @@ def from_master_key(text):
     elif is_xpub(text):
         k = from_xpub(text)
     else:
-        raise BitcoinException('Invalid master key')
+        raise BitnetIOException('Invalid master key')
     return k

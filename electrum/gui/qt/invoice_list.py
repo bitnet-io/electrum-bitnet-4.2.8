@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Electrum-BIT - lightweight Bitcoin client
+# Electrum - lightweight BitnetIO client
 # Copyright (C) 2015 Thomas Voegtlin
 #
 # Permission is hereby granted, free of charge, to any person
@@ -48,7 +48,6 @@ ROLE_SORT_ORDER = Qt.UserRole + 2
 
 
 class InvoiceList(MyTreeView):
-    key_role = ROLE_REQUEST_ID
 
     class Columns(IntEnum):
         DATE = 0
@@ -75,11 +74,14 @@ class InvoiceList(MyTreeView):
         self.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.update()
 
-    def refresh_row(self, key, row):
-        invoice = self.parent.wallet.invoices.get(key)
-        if invoice is None:
-            return
+    def update_item(self, key, invoice: Invoice):
         model = self.std_model
+        for row in range(0, model.rowCount()):
+            item = model.item(row, 0)
+            if item.data(ROLE_REQUEST_ID) == key:
+                break
+        else:
+            return
         status_item = model.item(row, self.Columns.STATUS)
         status = self.parent.wallet.get_invoice_status(invoice)
         status_str = invoice.get_status_str(status)
@@ -123,12 +125,11 @@ class InvoiceList(MyTreeView):
         self.proxy.setDynamicSortFilter(True)
         # sort requests by date
         self.sortByColumn(self.Columns.DATE, Qt.DescendingOrder)
-        self.hide_if_empty()
-
-    def hide_if_empty(self):
-        b = self.std_model.rowCount() > 0
-        self.setVisible(b)
-        self.parent.invoices_label.setVisible(b)
+        # hide list if empty
+        if self.parent.isVisible():
+            b = self.std_model.rowCount() > 0
+            self.setVisible(b)
+            self.parent.invoices_label.setVisible(b)
 
     def create_menu(self, position):
         wallet = self.parent.wallet
@@ -156,7 +157,7 @@ class InvoiceList(MyTreeView):
             menu.addAction(_("Details"), lambda: self.parent.show_lightning_invoice(invoice))
         else:
             if len(invoice.outputs) == 1:
-                menu.addAction(_("Copy Address"), lambda: self.parent.do_copy(invoice.get_address(), title='Bitcoin Address'))
+                menu.addAction(_("Copy Address"), lambda: self.parent.do_copy(invoice.get_address(), title='BitnetIO Address'))
             menu.addAction(_("Details"), lambda: self.parent.show_onchain_invoice(invoice))
         status = wallet.get_invoice_status(invoice)
         if status == PR_UNPAID:

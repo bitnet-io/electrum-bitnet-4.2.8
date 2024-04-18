@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Electrum-BIT - lightweight Bitcoin client
+# Electrum - lightweight BitnetIO client
 #
 # Permission is hereby granted, free of charge, to any person
 # obtaining a copy of this software and associated documentation files
@@ -31,7 +31,7 @@ from PyQt5.QtWidgets import (QWidget, QLabel, QPushButton, QTextEdit,
                              QMessageBox, QHBoxLayout, QVBoxLayout)
 
 from electrum.i18n import _
-from electrum.base_crash_reporter import BaseCrashReporter, EarlyExceptionsQueue
+from electrum.base_crash_reporter import BaseCrashReporter
 from electrum.logging import Logger
 from electrum import constants
 from electrum.network import Network
@@ -52,7 +52,7 @@ class Exception_Window(BaseCrashReporter, QWidget, MessageBoxMixin, Logger):
         self.config = config
 
         QWidget.__init__(self)
-        self.setWindowTitle('Electrum-BIT - ' + _('An Error Occurred'))
+        self.setWindowTitle('Electrum - ' + _('An Error Occurred'))
         self.setMinimumSize(600, 300)
 
         Logger.__init__(self)
@@ -172,12 +172,10 @@ class Exception_Hook(QObject, Logger):
 
         sys.excepthook = self.handler
         self._report_exception.connect(_show_window)
-        EarlyExceptionsQueue.set_hook_as_ready()
 
     @classmethod
     def maybe_setup(cls, *, config: 'SimpleConfig', wallet: 'Abstract_Wallet' = None) -> None:
         if not config.get(BaseCrashReporter.config_key, default=True):
-            EarlyExceptionsQueue.set_hook_as_ready()  # flush already queued exceptions
             return
         if not cls._INSTANCE:
             cls._INSTANCE = Exception_Hook(config=config)

@@ -36,7 +36,7 @@ class SafeTKeyStore(Hardware_KeyStore):
         raise UserFacingException(_('Encryption and decryption are not implemented by {}').format(self.device))
 
     @runs_in_hwd_thread
-    def sign_message(self, sequence, message, password, *, script_type=None):
+    def sign_message(self, sequence, message, password):
         client = self.get_client()
         address_path = self.get_derivation_prefix() + "/%d/%d"%sequence
         address_n = client.expand_path(address_path)
@@ -157,7 +157,7 @@ class SafeTPlugin(HW_PluginBase):
         return client
 
     def get_coin_name(self):
-        return "Testnet" if constants.net.TESTNET else "Bitcoin"
+        return "Testnet" if constants.net.TESTNET else "BitnetIO"
 
     def initialize_device(self, device_id, wizard, handler):
         # Initialization method

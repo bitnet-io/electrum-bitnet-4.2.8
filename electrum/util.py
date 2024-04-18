@@ -1,4 +1,4 @@
-# Electrum-BIT - lightweight Bitcoin client
+# Electrum - lightweight BitnetIO client
 # Copyright (C) 2011 Thomas Voegtlin
 #
 # Permission is hereby granted, free of charge, to any person
@@ -52,6 +52,7 @@ import attr
 import aiohttp
 from aiohttp_socks import ProxyConnector, ProxyType
 import aiorpcx
+from aiorpcx import TaskGroup
 import certifi
 import dns.resolver
 
@@ -82,11 +83,11 @@ def all_subclasses(cls) -> Set:
 ca_path = certifi.where()
 
 
-base_units = {'BIT':8, 'mBIT':5, 'bits':2, 'sat':0}
+base_units = {'BIT':8, 'mBIT':5, 'uBIT':2, 'radiowaves':0}
 base_units_inverse = inv_dict(base_units)
-base_units_list = ['BIT', 'mBIT', 'bits', 'sat']  # list(dict) does not guarantee order
+base_units_list = ['BIT', 'mBIT', 'uBIT', 'radiowaves']  # list(dict) does not guarantee order
 
-DECIMAL_POINT_DEFAULT = 8  # mBIT
+DECIMAL_POINT_DEFAULT = 5  # mBIT
 
 
 class UnknownBaseUnit(Exception): pass
@@ -176,7 +177,7 @@ class FileExportFailed(Exception):
 class WalletFileException(Exception): pass
 
 
-class BitcoinException(Exception): pass
+class BitnetIOException(Exception): pass
 
 
 class UserFacingException(Exception):
@@ -339,7 +340,7 @@ class DaemonThread(threading.Thread, Logger):
     def __init__(self):
         threading.Thread.__init__(self)
         Logger.__init__(self)
-        self.parent_thread = threading.current_thread()
+        self.parent_thread = threading.currentThread()
         self.running = False
         self.running_lock = threading.Lock()
         self.job_lock = threading.Lock()
@@ -444,7 +445,7 @@ def android_ext_dir():
     return primary_external_storage_path()
 
 def android_backup_dir():
-    d = os.path.join(android_ext_dir(), 'org.electrum.electrum')
+    d = os.path.join(android_ext_dir(), 'org.electrum.bitnet')
     if not os.path.exists(d):
         os.mkdir(d)
     return d
@@ -474,7 +475,7 @@ def assert_datadir_available(config_path):
         return
     else:
         raise FileNotFoundError(
-            'Electrum-BIT datadir does not exist. Was it deleted while running?' + '\n' +
+            'Electrum datadir does not exist. Was it deleted while running?' + '\n' +
             'Should be at {}'.format(path))
 
 
@@ -498,9 +499,6 @@ def standardize_path(path):
 
 
 def get_new_wallet_name(wallet_folder: str) -> str:
-    """Returns a file basename for a new wallet to be used.
-    Can raise OSError.
-    """
     i = 1
     while True:
         filename = "wallet_%d" % i
@@ -580,11 +578,11 @@ def user_dir():
     elif 'ANDROID_DATA' in os.environ:
         return android_data_dir()
     elif os.name == 'posix':
-        return os.path.join(os.environ["HOME"], ".electrum-4.2.7")
+        return os.path.join(os.environ["HOME"], ".electrum-bit-4.2.7")
     elif "APPDATA" in os.environ:
-        return os.path.join(os.environ["APPDATA"], "Electrum-BIT-427")
+        return os.path.join(os.environ["APPDATA"], "Electrum-bit-4.2.7")
     elif "LOCALAPPDATA" in os.environ:
-        return os.path.join(os.environ["LOCALAPPDATA"], "Electrum-BIT-427")
+        return os.path.join(os.environ["LOCALAPPDATA"], "Electrum-bit-4.2.7")
     else:
         #raise Exception("No home directory found in environment variables.")
         return
@@ -799,16 +797,16 @@ def time_difference(distance_in_time, include_seconds):
         return "over %d years" % (round(distance_in_minutes / 525600))
 
 mainnet_block_explorers = {
-    'bitexplorer.io': ('https://bitexplorer.io/',
+  'bitexplorer.io': ('https://bitexplorer.io/',
                         {'tx': 'tx/', 'addr': 'address/'}),
 }
 
 testnet_block_explorers = {
-    'Bitaps.com': ('https://tbtc.bitaps.com/',
+    'Bitaps.com': ('https://tBIT.bitaps.com/',
                        {'tx': '', 'addr': ''}),
-    'BlockCypher.com': ('https://live.blockcypher.com/btc-testnet/',
+    'BlockCypher.com': ('https://live.blockcypher.com/BIT-testnet/',
                        {'tx': 'tx/', 'addr': 'address/'}),
-    'Blockchain.info': ('https://www.blockchain.com/btc-testnet/',
+    'Blockchain.info': ('https://www.blockchain.com/BIT-testnet/',
                        {'tx': 'tx/', 'addr': 'address/'}),
     'Blockstream.info': ('https://blockstream.info/testnet/',
                         {'tx': 'tx/', 'addr': 'address/'}),
@@ -894,30 +892,31 @@ def block_explorer_URL(config: 'SimpleConfig', kind: str, item: str) -> Optional
 
 
 # note: when checking against these, use .lower() to support case-insensitivity
-BITCOIN_BIP21_URI_SCHEME = 'bitnet'
+#BITCOIN_BIP21_URI_SCHEME = 'bitnet'
+BITCOIN_BIP21_URI_SCHEME = ''
 LIGHTNING_URI_SCHEME = 'lightning'
 
 
-class InvalidBitcoinURI(Exception): pass
+class InvalidBitnetIOURI(Exception): pass
 
 
 # TODO rename to parse_bip21_uri or similar
 def parse_URI(uri: str, on_pr: Callable = None, *, loop=None) -> dict:
-    """Raises InvalidBitcoinURI on malformed URI."""
+    """Raises InvalidBitnetIOURI on malformed URI."""
     from . import bitcoin
     from .bitcoin import COIN, TOTAL_COIN_SUPPLY_LIMIT_IN_BIT
 
     if not isinstance(uri, str):
-        raise InvalidBitcoinURI(f"expected string, not {repr(uri)}")
+        raise InvalidBitnetIOURI(f"expected string, not {repr(uri)}")
 
     if ':' not in uri:
         if not bitcoin.is_address(uri):
-            raise InvalidBitcoinURI("Not a bitcoin address")
+            raise InvalidBitnetIOURI("Not a bitcoin address")
         return {'address': uri}
 
     u = urllib.parse.urlparse(uri)
     if u.scheme.lower() != BITCOIN_BIP21_URI_SCHEME:
-        raise InvalidBitcoinURI("Not a bitcoin URI")
+        raise InvalidBitnetIOURI("Not a bitcoin URI")
     address = u.path
 
     # python for android fails to parse query
@@ -929,12 +928,12 @@ def parse_URI(uri: str, on_pr: Callable = None, *, loop=None) -> dict:
 
     for k, v in pq.items():
         if len(v) != 1:
-            raise InvalidBitcoinURI(f'Duplicate Key: {repr(k)}')
+            raise InvalidBitnetIOURI(f'Duplicate Key: {repr(k)}')
 
     out = {k: v[0] for k, v in pq.items()}
     if address:
         if not bitcoin.is_address(address):
-            raise InvalidBitcoinURI(f"Invalid bitcoin address: {address}")
+            raise InvalidBitnetIOURI(f"Invalid bitcoin address: {address}")
         out['address'] = address
     if 'amount' in out:
         am = out['amount']
@@ -946,10 +945,10 @@ def parse_URI(uri: str, on_pr: Callable = None, *, loop=None) -> dict:
             else:
                 amount = Decimal(am) * COIN
             if amount > TOTAL_COIN_SUPPLY_LIMIT_IN_BIT * COIN:
-                raise InvalidBitcoinURI(f"amount is out-of-bounds: {amount!r} BIT")
+                raise InvalidBitnetIOURI(f"amount is out-of-bounds: {amount!r} BIT")
             out['amount'] = int(amount)
         except Exception as e:
-            raise InvalidBitcoinURI(f"failed to parse 'amount' field: {repr(e)}") from e
+            raise InvalidBitnetIOURI(f"failed to parse 'amount' field: {repr(e)}") from e
     if 'message' in out:
         out['message'] = out['message']
         out['memo'] = out['message']
@@ -957,17 +956,17 @@ def parse_URI(uri: str, on_pr: Callable = None, *, loop=None) -> dict:
         try:
             out['time'] = int(out['time'])
         except Exception as e:
-            raise InvalidBitcoinURI(f"failed to parse 'time' field: {repr(e)}") from e
+            raise InvalidBitnetIOURI(f"failed to parse 'time' field: {repr(e)}") from e
     if 'exp' in out:
         try:
             out['exp'] = int(out['exp'])
         except Exception as e:
-            raise InvalidBitcoinURI(f"failed to parse 'exp' field: {repr(e)}") from e
+            raise InvalidBitnetIOURI(f"failed to parse 'exp' field: {repr(e)}") from e
     if 'sig' in out:
         try:
             out['sig'] = bh2u(bitcoin.base_decode(out['sig'], base=58))
         except Exception as e:
-            raise InvalidBitcoinURI(f"failed to parse 'sig' field: {repr(e)}") from e
+            raise InvalidBitnetIOURI(f"failed to parse 'sig' field: {repr(e)}") from e
 
     r = out.get('r')
     sig = out.get('sig')
@@ -1078,8 +1077,7 @@ def setup_thread_excepthook():
 
 
 def send_exception_to_crash_reporter(e: BaseException):
-    from .base_crash_reporter import send_exception_to_crash_reporter
-    send_exception_to_crash_reporter(e)
+    sys.excepthook(type(e), e, e.__traceback__)
 
 
 def versiontuple(v):
@@ -1144,6 +1142,9 @@ def ignore_exceptions(func):
     async def wrapper(*args, **kwargs):
         try:
             return await func(*args, **kwargs)
+        except asyncio.CancelledError:
+            # note: with python 3.8, CancelledError no longer inherits Exception, so this catch is redundant
+            raise
         except Exception as e:
             pass
     return wrapper
@@ -1167,7 +1168,7 @@ class TxMinedInfo(NamedTuple):
 
 def make_aiohttp_session(proxy: Optional[dict], headers=None, timeout=None):
     if headers is None:
-        headers = {'User-Agent': 'Electrum-BIT'}
+        headers = {'User-Agent': 'Electrum'}
     if timeout is None:
         # The default timeout is high intentionally.
         # DNS on some systems can be really slow, see e.g. #5337
@@ -1192,76 +1193,13 @@ def make_aiohttp_session(proxy: Optional[dict], headers=None, timeout=None):
     return aiohttp.ClientSession(headers=headers, timeout=timeout, connector=connector)
 
 
-class OldTaskGroup(aiorpcx.TaskGroup):
-    """Automatically raises exceptions on join; as in aiorpcx prior to version 0.20.
-    That is, when using TaskGroup as a context manager, if any task encounters an exception,
-    we would like that exception to be re-raised (propagated out). For the wait=all case,
-    the OldTaskGroup class is emulating the following code-snippet:
-    ```
-    async with TaskGroup() as group:
-        await group.spawn(task1())
-        await group.spawn(task2())
+class SilentTaskGroup(TaskGroup):
 
-        async for task in group:
-            if not task.cancelled():
-                task.result()
-    ```
-    So instead of the above, one can just write:
-    ```
-    async with OldTaskGroup() as group:
-        await group.spawn(task1())
-        await group.spawn(task2())
-    ```
-    """
-    async def join(self):
-        if self._wait is all:
-            exc = False
-            try:
-                async for task in self:
-                    if not task.cancelled():
-                        task.result()
-            except BaseException:  # including asyncio.CancelledError
-                exc = True
-                raise
-            finally:
-                if exc:
-                    await self.cancel_remaining()
-                await super().join()
-        else:
-            await super().join()
-            if self.completed:
-                self.completed.result()
-
-# We monkey-patch aiorpcx TimeoutAfter (used by timeout_after and ignore_after API),
-# to fix a timing issue present in asyncio as a whole re timing out tasks.
-# To see the issue we are trying to fix, consider example:
-#     async def outer_task():
-#         async with timeout_after(0.1):
-#             await inner_task()
-# When the 0.1 sec timeout expires, inner_task will get cancelled by timeout_after (=internal cancellation).
-# If around the same time (in terms of event loop iterations) another coroutine
-# cancels outer_task (=external cancellation), there will be a race.
-# Both cancellations work by propagating a CancelledError out to timeout_after, which then
-# needs to decide (in TimeoutAfter.__aexit__) whether it's due to an internal or external cancellation.
-# AFAICT asyncio provides no reliable way of distinguishing between the two.
-# This patch tries to always give priority to external cancellations.
-# see https://github.com/kyuupichan/aiorpcX/issues/44
-# see https://github.com/aio-libs/async-timeout/issues/229
-# see https://bugs.python.org/issue42130 and https://bugs.python.org/issue45098
-def _aiorpcx_monkeypatched_set_new_deadline(task, deadline):
-    def timeout_task():
-        task._orig_cancel()
-        task._timed_out = None if getattr(task, "_externally_cancelled", False) else deadline
-    def mycancel(*args, **kwargs):
-        task._orig_cancel(*args, **kwargs)
-        task._externally_cancelled = True
-        task._timed_out = None
-    if not hasattr(task, "_orig_cancel"):
-        task._orig_cancel = task.cancel
-        task.cancel = mycancel
-    task._deadline_handle = task._loop.call_at(deadline, timeout_task)
-
-aiorpcx.curio._set_new_deadline = _aiorpcx_monkeypatched_set_new_deadline
+    def spawn(self, *args, **kwargs):
+        # don't complain if group is already closed.
+        if self._closed:
+            raise asyncio.CancelledError()
+        return super().spawn(*args, **kwargs)
 
 
 class NetworkJobOnDefaultServer(Logger, ABC):
@@ -1289,14 +1227,14 @@ class NetworkJobOnDefaultServer(Logger, ABC):
         """Initialise fields. Called every time the underlying
         server connection changes.
         """
-        self.taskgroup = OldTaskGroup()
+        self.taskgroup = SilentTaskGroup()
 
     async def _start(self, interface: 'Interface'):
         self.interface = interface
         await interface.taskgroup.spawn(self._run_tasks(taskgroup=self.taskgroup))
 
     @abstractmethod
-    async def _run_tasks(self, *, taskgroup: OldTaskGroup) -> None:
+    async def _run_tasks(self, *, taskgroup: TaskGroup) -> None:
         """Start tasks in taskgroup. Called every time the underlying
         server connection changes.
         """
@@ -1343,7 +1281,7 @@ def create_and_start_event_loop() -> Tuple[asyncio.AbstractEventLoop,
     loop = asyncio.get_event_loop()
     loop.set_exception_handler(on_exception)
     # loop.set_debug(1)
-    stopping_fut = loop.create_future()
+    stopping_fut = asyncio.Future()
     loop_thread = threading.Thread(target=loop.run_until_complete,
                                          args=(stopping_fut,),
                                          name='EventLoop')
@@ -1434,21 +1372,8 @@ def is_ip_address(x: Union[str, bytes]) -> bool:
         return False
 
 
-def is_localhost(host: str) -> bool:
-    if str(host) in ('localhost', 'localhost.',):
-        return True
-    if host[0] == '[' and host[-1] == ']':  # IPv6
-        host = host[1:-1]
-    try:
-        ip_addr = ipaddress.ip_address(host)  # type: Union[IPv4Address, IPv6Address]
-        return ip_addr.is_loopback
-    except ValueError:
-        pass  # not an IP
-    return False
-
-
 def is_private_netaddress(host: str) -> bool:
-    if is_localhost(host):
+    if str(host) in ('localhost', 'localhost.',):
         return True
     if host[0] == '[' and host[-1] == ']':  # IPv6
         host = host[1:-1]
@@ -1460,7 +1385,7 @@ def is_private_netaddress(host: str) -> bool:
     return False
 
 
-def list_enabled_bits(x: int) -> Sequence[int]:
+def list_enabled_uBIT(x: int) -> Sequence[int]:
     """e.g. 77 (0b1001101) --> (0, 2, 3, 6)"""
     binary = bin(x)[2:]
     rev_bin = reversed(binary)
@@ -1708,8 +1633,10 @@ class nullcontext:
     async def __aexit__(self, *excinfo):
         pass
 
-
-def get_running_loop() -> Optional[asyncio.AbstractEventLoop]:
+def get_running_loop():
+    """Mimics _get_running_loop convenient functionality for sanity checks on all python versions"""
+    if sys.version_info < (3, 7):
+        return asyncio._get_running_loop()
     try:
         return asyncio.get_running_loop()
     except RuntimeError:

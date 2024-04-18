@@ -1,5 +1,5 @@
-# Electrum-BIT - lightweight Bitcoin client
-# Copyright (C) 2018 The Electrum-BIT Developers
+# Electrum - lightweight BitnetIO client
+# Copyright (C) 2018 The Electrum Developers
 #
 # Permission is hereby granted, free of charge, to any person
 # obtaining a copy of this software and associated documentation files
@@ -28,9 +28,11 @@ import itertools
 from collections import defaultdict
 from typing import TYPE_CHECKING, Dict, Optional, Set, Tuple, NamedTuple, Sequence, List
 
+from aiorpcx import TaskGroup
+
 from . import bitcoin, util
 from .bitcoin import COINBASE_MATURITY
-from .util import profiler, bfh, TxMinedInfo, UnrelatedTransactionException, with_lock, OldTaskGroup
+from .util import profiler, bfh, TxMinedInfo, UnrelatedTransactionException, with_lock
 from .transaction import Transaction, TxOutput, TxInput, PartialTxInput, TxOutpoint, PartialTransaction
 from .synchronizer import Synchronizer
 from .verifier import SPV
@@ -191,7 +193,7 @@ class AddressSynchronizer(Logger):
     async def stop(self):
         if self.network:
             try:
-                async with OldTaskGroup() as group:
+                async with TaskGroup() as group:
                     if self.synchronizer:
                         await group.spawn(self.synchronizer.stop())
                     if self.verifier:

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Electrum-BIT - lightweight Bitcoin client
+# Electrum - lightweight BitnetIO client
 # Copyright (C) 2011 thomasv@gitorious
 #
 # Permission is hereby granted, free of charge, to any person
@@ -23,6 +23,7 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from .transaction import convert_raw_tx_to_hex
 import sys
 import datetime
 import copy
@@ -33,6 +34,7 @@ import base64
 import operator
 import asyncio
 import inspect
+import time
 from collections import defaultdict
 from functools import wraps, partial
 from itertools import repeat
@@ -53,15 +55,16 @@ from .synchronizer import Notifier
 from .wallet import Abstract_Wallet, create_new_wallet, restore_wallet_from_text, Deterministic_Wallet, BumpFeeStrategy
 from .address_synchronizer import TX_HEIGHT_LOCAL
 from .mnemonic import Mnemonic
-from .lnutil import SENT, RECEIVED
-from .lnutil import LnFeatures
-from .lnutil import extract_nodeid
-from .lnpeer import channel_id_from_funding_tx
+
+#from .lnutil import SENT, RECEIVED
+#from .lnutil import LnFeatures
+#from .lnutil import extract_nodeid
+#from .lnpeer import channel_id_from_funding_tx
 from .plugin import run_hook
 from .version import ELECTRUM_VERSION
 from .simple_config import SimpleConfig
 from .invoices import LNInvoice
-from . import submarine_swaps
+#from . import submarine_swaps
 
 
 if TYPE_CHECKING:
@@ -79,9 +82,11 @@ class NotSynchronizedException(Exception):
 def satoshis_or_max(amount):
     return satoshis(amount) if not parse_max_spend(amount) else amount
 
+
 def satoshis(amount):
     # satoshi conversion must not be performed by the parser
     return int(COIN*Decimal(amount)) if amount is not None else None
+
 
 def format_satoshis(x):
     return str(Decimal(x)/COIN) if x is not None else None
@@ -95,7 +100,8 @@ class Command:
         self.requires_password = 'p' in s
         self.requires_lightning = 'l' in s
         self.description = func.__doc__
-        self.help = self.description.split('.')[0] if self.description else None
+        self.help = self.description.split(
+            '.')[0] if self.description else None
         varnames = func.__code__.co_varnames[1:func.__code__.co_argcount]
         self.defaults = func.__defaults__
         if self.defaults:
@@ -123,6 +129,7 @@ def command(s):
         global known_commands
         name = func.__name__
         known_commands[name] = Command(func, s)
+
         @wraps(func)
         async def func_wrapper(*args, **kwargs):
             cmd_runner = args[0]  # type: Commands
@@ -217,6 +224,7 @@ class Commands:
     @command('n')
     async def stop(self):
         """Stop daemon"""
+        # TODO it would be nice if this could stop the GUI too
         await self.daemon.stop()
         return "Daemon stopped"
 
@@ -229,7 +237,8 @@ class Commands:
     @command('n')
     async def load_wallet(self, wallet_path=None, password=None):
         """Open wallet in daemon"""
-        wallet = self.daemon.load_wallet(wallet_path, password, manual_upgrades=False)
+        wallet = self.daemon.load_wallet(
+            wallet_path, password, manual_upgrades=False)
         if wallet is not None:
             run_hook('load_wallet', wallet, None)
         response = wallet is not None
@@ -280,11 +289,12 @@ class Commands:
     async def password(self, password=None, new_password=None, wallet: Abstract_Wallet = None):
         """Change wallet password. """
         if wallet.storage.is_encrypted_with_hw_device() and new_password:
-            raise Exception("Can't change the password of a wallet encrypted with a hw device.")
+            raise Exception(
+                "Can't change the password of a wallet encrypted with a hw device.")
         b = wallet.storage.is_encrypted()
         wallet.update_password(password, new_password, encrypt_storage=b)
         wallet.save_db()
-        return {'password':wallet.has_password()}
+        return {'password': wallet.has_password()}
 
     @command('w')
     async def get(self, key, wallet: Abstract_Wallet = None):
@@ -370,20 +380,24 @@ class Commands:
         locktime = jsontx.get('locktime', 0)
         for txin_dict in jsontx.get('inputs'):
             if txin_dict.get('prevout_hash') is not None and txin_dict.get('prevout_n') is not None:
-                prevout = TxOutpoint(txid=bfh(txin_dict['prevout_hash']), out_idx=int(txin_dict['prevout_n']))
+                prevout = TxOutpoint(
+                    txid=bfh(txin_dict['prevout_hash']), out_idx=int(txin_dict['prevout_n']))
             elif txin_dict.get('output'):
                 prevout = TxOutpoint.from_str(txin_dict['output'])
             else:
                 raise Exception("missing prevout for txin")
             txin = PartialTxInput(prevout=prevout)
-            txin._trusted_value_sats = int(txin_dict.get('value', txin_dict['value_sats']))
+            txin._trusted_value_sats = int(
+                txin_dict.get('value', txin_dict['value_sats']))
             nsequence = txin_dict.get('nsequence', None)
             if nsequence is not None:
                 txin.nsequence = nsequence
             sec = txin_dict.get('privkey')
             if sec:
-                txin_type, privkey, compressed = bitcoin.deserialize_privkey(sec)
-                pubkey = ecc.ECPrivkey(privkey).get_public_key_hex(compressed=compressed)
+                txin_type, privkey, compressed = bitcoin.deserialize_privkey(
+                    sec)
+                pubkey = ecc.ECPrivkey(privkey).get_public_key_hex(
+                    compressed=compressed)
                 keypairs[pubkey] = privkey, compressed
                 txin.script_type = txin_type
                 txin.pubkeys = [bfh(pubkey)]
@@ -410,7 +424,8 @@ class Commands:
 
         for priv in privkey:
             txin_type, priv2, compressed = bitcoin.deserialize_privkey(priv)
-            pubkey = ecc.ECPrivkey(priv2).get_public_key_bytes(compressed=compressed)
+            pubkey = ecc.ECPrivkey(priv2).get_public_key_bytes(
+                compressed=compressed)
             address = bitcoin.pubkey_to_address(txin_type, pubkey.hex())
             if address in txins_dict.keys():
                 for txin in txins_dict[address]:
@@ -446,7 +461,7 @@ class Commands:
         assert isinstance(pubkeys, list), (type(num), type(pubkeys))
         redeem_script = multisig_script(pubkeys, num)
         address = bitcoin.hash160_to_p2sh(hash_160(bfh(redeem_script)))
-        return {'address':address, 'redeemScript':redeem_script}
+        return {'address': address, 'redeemScript': redeem_script}
 
     @command('w')
     async def freeze(self, address: str, wallet: Abstract_Wallet = None):
@@ -528,13 +543,13 @@ class Commands:
         """
         sh = bitcoin.address_to_scripthash(address)
         out = await self.network.get_balance_for_scripthash(sh)
-        out["confirmed"] =  str(Decimal(out["confirmed"])/COIN)
-        out["unconfirmed"] =  str(Decimal(out["unconfirmed"])/COIN)
+        out["confirmed"] = str(Decimal(out["confirmed"])/COIN)
+        out["unconfirmed"] = str(Decimal(out["unconfirmed"])/COIN)
         return out
 
     @command('n')
     async def getmerkle(self, txid, height):
-        """Get Merkle branch of a transaction included in a block. Electrum-BIT
+        """Get Merkle branch of a transaction included in a block. Electrum
         uses this to verify transactions (Simple Payment Verification)."""
         return await self.network.get_merkle_for_transaction(txid, int(height))
 
@@ -545,7 +560,7 @@ class Commands:
 
     @command('')
     async def version(self):
-        """Return the version of Electrum-BIT."""
+        """Return the version of Electrum."""
         from .version import ELECTRUM_VERSION
         return ELECTRUM_VERSION
 
@@ -581,7 +596,8 @@ class Commands:
             return "Error: This type of wallet cannot import private keys. Try to create a new wallet with that key."
         try:
             addr = wallet.import_private_key(privkey, password)
-            out = "Keypair imported: " + addr
+            out = "Keypair imported: daemon will restore in 30 seconds.  " + addr
+            time.sleep(30)
         except Exception as e:
             out = "Error: " + repr(e)
         return out
@@ -637,9 +653,11 @@ class Commands:
         domain_addr = from_addr.split(',') if from_addr else None
         domain_coins = from_coins.split(',') if from_coins else None
         change_addr = self._resolver(change_addr, wallet)
-        domain_addr = None if domain_addr is None else map(self._resolver, domain_addr, repeat(wallet))
+        domain_addr = None if domain_addr is None else map(
+            self._resolver, domain_addr, repeat(wallet))
         amount_sat = satoshis_or_max(amount)
-        outputs = [PartialTxOutput.from_address_and_value(destination, amount_sat)]
+        outputs = [PartialTxOutput.from_address_and_value(
+            destination, amount_sat)]
         tx = wallet.create_transaction(
             outputs,
             fee=tx_fee,
@@ -665,12 +683,14 @@ class Commands:
         domain_addr = from_addr.split(',') if from_addr else None
         domain_coins = from_coins.split(',') if from_coins else None
         change_addr = self._resolver(change_addr, wallet)
-        domain_addr = None if domain_addr is None else map(self._resolver, domain_addr, repeat(wallet))
+        domain_addr = None if domain_addr is None else map(
+            self._resolver, domain_addr, repeat(wallet))
         final_outputs = []
         for address, amount in outputs:
             address = self._resolver(address, wallet)
             amount_sat = satoshis_or_max(amount)
-            final_outputs.append(PartialTxOutput.from_address_and_value(address, amount_sat))
+            final_outputs.append(
+                PartialTxOutput.from_address_and_value(address, amount_sat))
         tx = wallet.create_transaction(
             final_outputs,
             fee=tx_fee,
@@ -716,7 +736,8 @@ class Commands:
         domain_coins = from_coins.split(',') if from_coins else None
         coins = wallet.get_spendable_coins(None)
         if domain_coins is not None:
-            coins = [coin for coin in coins if (coin.prevout.to_str() in domain_coins)]
+            coins = [coin for coin in coins if (
+                coin.prevout.to_str() in domain_coins)]
         strategies = strategies.split(',') if strategies else None
         bumpfee_strategies = None
         if strategies is not None:
@@ -816,11 +837,13 @@ class Commands:
     async def encrypt(self, pubkey, message) -> str:
         """Encrypt a message with a public key. Use quotes if the message contains whitespaces."""
         if not is_hex_str(pubkey):
-            raise Exception(f"pubkey must be a hex string instead of {repr(pubkey)}")
+            raise Exception(
+                f"pubkey must be a hex string instead of {repr(pubkey)}")
         try:
             message = to_bytes(message)
         except TypeError:
-            raise Exception(f"message must be a string-like object instead of {repr(message)}")
+            raise Exception(
+                f"message must be a string-like object instead of {repr(message)}")
         public_key = ecc.ECPubkey(bfh(pubkey))
         encrypted = public_key.encrypt_message(message)
         return encrypted.decode('utf-8')
@@ -829,9 +852,11 @@ class Commands:
     async def decrypt(self, pubkey, encrypted, password=None, wallet: Abstract_Wallet = None) -> str:
         """Decrypt a message encrypted with a public key."""
         if not is_hex_str(pubkey):
-            raise Exception(f"pubkey must be a hex string instead of {repr(pubkey)}")
+            raise Exception(
+                f"pubkey must be a hex string instead of {repr(pubkey)}")
         if not isinstance(encrypted, (str, bytes, bytearray)):
-            raise Exception(f"encrypted must be a string-like object instead of {repr(encrypted)}")
+            raise Exception(
+                f"encrypted must be a string-like object instead of {repr(encrypted)}")
         decrypted = wallet.decrypt_message(pubkey, encrypted, password)
         return decrypted.decode('utf-8')
 
@@ -843,8 +868,8 @@ class Commands:
             raise Exception("Request not found")
         return wallet.export_request(r)
 
-    #@command('w')
-    #async def ackrequest(self, serialized):
+    # @command('w')
+    # async def ackrequest(self, serialized):
     #    """<Not implemented>"""
     #    pass
 
@@ -990,7 +1015,8 @@ class Commands:
         elif fee_method.lower() == 'mempool':
             dyn, mempool = True, True
         else:
-            raise Exception('Invalid fee estimation method: {}'.format(fee_method))
+            raise Exception(
+                'Invalid fee estimation method: {}'.format(fee_method))
         if fee_level is not None:
             fee_level = Decimal(fee_level)
         return self.config.fee_per_kb(dyn=dyn, mempool=mempool, fee_level=fee_level)
@@ -1038,9 +1064,9 @@ class Commands:
     async def list_peers(self, gossip=False, wallet: Abstract_Wallet = None):
         lnworker = self.network.lngossip if gossip else wallet.lnworker
         return [{
-            'node_id':p.pubkey.hex(),
-            'address':p.transport.name(),
-            'initialized':p.is_initialized(),
+            'node_id': p.pubkey.hex(),
+            'address': p.transport.name(),
+            'initialized': p.is_initialized(),
             'features': str(LnFeatures(p.features)),
             'channels': [c.funding_outpoint.to_str() for c in p.channels.values()],
         } for p in lnworker.peers.values()]
@@ -1105,7 +1131,8 @@ class Commands:
                 'remote_pubkey': bh2u(chan.node_id),
                 'local_balance': chan.balance(LOCAL)//1000,
                 'remote_balance': chan.balance(REMOTE)//1000,
-                'local_reserve': chan.config[REMOTE].reserve_sat, # their config has our reserve
+                # their config has our reserve
+                'local_reserve': chan.config[REMOTE].reserve_sat,
                 'remote_reserve': chan.config[LOCAL].reserve_sat,
                 'local_unsettled_sent': chan.balance_tied_up_in_htlcs_by_direction(LOCAL, direction=SENT) // 1000,
                 'remote_unsettled_sent': chan.balance_tied_up_in_htlcs_by_direction(REMOTE, direction=SENT) // 1000,
@@ -1153,7 +1180,8 @@ class Commands:
     async def close_channel(self, channel_point, force=False, wallet: Abstract_Wallet = None):
         txid, index = channel_point.split(':')
         chan_id, _ = channel_id_from_funding_tx(txid, int(index))
-        coro = wallet.lnworker.force_close_channel(chan_id) if force else wallet.lnworker.close_channel(chan_id)
+        coro = wallet.lnworker.force_close_channel(
+            chan_id) if force else wallet.lnworker.close_channel(chan_id)
         return await coro
 
     @command('wnl')
@@ -1197,19 +1225,21 @@ class Commands:
     @command('wnpl')
     async def normal_swap(self, onchain_amount, lightning_amount, password=None, wallet: Abstract_Wallet = None):
         """
-        Normal submarine swap: send on-chain BIT, receive on Lightning
+        Normal submarine swap: send on-chain BTC, receive on Lightning
         Note that your funds will be locked for 24h if you do not have enough incoming capacity.
         """
         sm = wallet.lnworker.swap_manager
         if lightning_amount == 'dryrun':
             await sm.get_pairs()
             onchain_amount_sat = satoshis(onchain_amount)
-            lightning_amount_sat = sm.get_recv_amount(onchain_amount_sat, is_reverse=False)
+            lightning_amount_sat = sm.get_recv_amount(
+                onchain_amount_sat, is_reverse=False)
             txid = None
         elif onchain_amount == 'dryrun':
             await sm.get_pairs()
             lightning_amount_sat = satoshis(lightning_amount)
-            onchain_amount_sat = sm.get_send_amount(lightning_amount_sat, is_reverse=False)
+            onchain_amount_sat = sm.get_send_amount(
+                lightning_amount_sat, is_reverse=False)
             txid = None
         else:
             lightning_amount_sat = satoshis(lightning_amount)
@@ -1233,12 +1263,14 @@ class Commands:
         if onchain_amount == 'dryrun':
             await sm.get_pairs()
             lightning_amount_sat = satoshis(lightning_amount)
-            onchain_amount_sat = sm.get_recv_amount(lightning_amount_sat, is_reverse=True)
+            onchain_amount_sat = sm.get_recv_amount(
+                lightning_amount_sat, is_reverse=True)
             success = None
         elif lightning_amount == 'dryrun':
             await sm.get_pairs()
             onchain_amount_sat = satoshis(onchain_amount)
-            lightning_amount_sat = sm.get_send_amount(onchain_amount_sat, is_reverse=True)
+            lightning_amount_sat = sm.get_send_amount(
+                onchain_amount_sat, is_reverse=True)
             success = None
         else:
             lightning_amount_sat = satoshis(lightning_amount)
@@ -1256,17 +1288,20 @@ class Commands:
 
 
 def eval_bool(x: str) -> bool:
-    if x == 'false': return False
-    if x == 'true': return True
+    if x == 'false':
+        return False
+    if x == 'true':
+        return True
     try:
         return bool(ast.literal_eval(x))
     except:
         return bool(x)
 
+
 param_descriptions = {
     'privkey': 'Private key. Type \'?\' to get a prompt.',
-    'destination': 'Bitcoin address, contact or alias',
-    'address': 'Bitcoin address',
+    'destination': 'BitnetIO address, contact or alias',
+    'address': 'BitnetIO address',
     'seed': 'Seed phrase',
     'txid': 'Transaction ID',
     'pos': 'Position',
@@ -1276,8 +1311,8 @@ param_descriptions = {
     'pubkey': 'Public key',
     'message': 'Clear text message. Use quotes if it contains spaces.',
     'encrypted': 'Encrypted message',
-    'amount': 'Amount to be sent (in BIT). Type \'!\' to send the maximum available.',
-    'requested_amount': 'Requested amount (in BIT).',
+    'amount': 'Amount to be sent (in BTC). Type \'!\' to send the maximum available.',
+    'requested_amount': 'Requested amount (in BTC).',
     'outputs': 'list of ["address", amount]',
     'redeem_script': 'redeem script (hexadecimal)',
     'lightning_amount': "Amount sent or received in a submarine swap. Set it to 'dryrun' to receive a value",
@@ -1286,8 +1321,8 @@ param_descriptions = {
 
 command_options = {
     'password':    ("-W", "Password"),
-    'new_password':(None, "New Password"),
-    'encrypt_file':(None, "Whether the file on disk should be encrypted with the provided password"),
+    'new_password': (None, "New Password"),
+    'encrypt_file': (None, "Whether the file on disk should be encrypted with the provided password"),
     'receiving':   (None, "Show only receiving addresses"),
     'change':      (None, "Show only change addresses"),
     'frozen':      (None, "Show only frozen addresses"),
@@ -1297,7 +1332,7 @@ command_options = {
     'labels':      ("-l", "Show the labels of listed addresses"),
     'nocheck':     (None, "Do not verify aliases"),
     'imax':        (None, "Maximum number of inputs"),
-    'fee':         ("-f", "Transaction fee (absolute, in BIT)"),
+    'fee':         ("-f", "Transaction fee (absolute, in BTC)"),
     'feerate':     (None, "Transaction fee rate (in sat/byte)"),
     'from_addr':   ("-F", "Source address (must be a wallet address; use sweep to spend from non-wallet address)."),
     'from_coins':  (None, "Source coins (must be in wallet; use sweep to spend from non-wallet address)."),
@@ -1310,7 +1345,7 @@ command_options = {
     'unsigned':    ("-u", "Do not sign transaction"),
     'rbf':         (None, "Whether to signal opt-in Replace-By-Fee in the transaction (true/false)"),
     'locktime':    (None, "Set locktime block number"),
-    'addtransaction': (None,'Whether transaction is to be used for broadcasting afterwards. Adds transaction to the wallet'),
+    'addtransaction': (None, 'Whether transaction is to be used for broadcasting afterwards. Adds transaction to the wallet'),
     'domain':      ("-D", "List of addresses"),
     'memo':        ("-m", "Description of the request"),
     'expiration':  (None, "Time in seconds"),
@@ -1318,7 +1353,7 @@ command_options = {
     'timeout':     (None, "Timeout in seconds"),
     'force':       (None, "Create new address beyond gap limit, if no more addresses are available."),
     'pending':     (None, "Show only pending requests."),
-    'push_amount': (None, 'Push initial amount (in BIT)'),
+    'push_amount': (None, 'Push initial amount (in BTC)'),
     'expired':     (None, "Show only expired requests."),
     'paid':        (None, "Show only paid requests."),
     'show_addresses': (None, "Show input and output addresses"),
@@ -1338,8 +1373,9 @@ command_options = {
 
 
 # don't use floats because of rounding errors
-from .transaction import convert_raw_tx_to_hex
-json_loads = lambda x: json.loads(x, parse_float=lambda x: str(Decimal(x)))
+def json_loads(x): return json.loads(x, parse_float=lambda x: str(Decimal(x)))
+
+
 arg_types = {
     'num': int,
     'nbits': int,
@@ -1369,18 +1405,19 @@ config_variables = {
     'addrequest': {
         'ssl_privkey': 'Path to your SSL private key, needed to sign the request.',
         'ssl_chain': 'Chain of SSL certificates, needed for signed requests. Put your certificate at the top and the root CA at the end',
-        'url_rewrite': 'Parameters passed to str.replace(), in order to create the r= part of bitnet: URIs. Example: \"(\'file:///var/www/\',\'https://electrum.org/\')\"',
+        'url_rewrite': 'Parameters passed to str.replace(), in order to create the r= part of bitnet URIs. Example: \"(\'file:///var/www/\',\'https://electrum.org/\')\"',
     },
-    'listrequests':{
-        'url_rewrite': 'Parameters passed to str.replace(), in order to create the r= part of bitnet: URIs. Example: \"(\'file:///var/www/\',\'https://electrum.org/\')\"',
+    'listrequests': {
+        'url_rewrite': 'Parameters passed to str.replace(), in order to create the r= part of bitnet URIs. Example: \"(\'file:///var/www/\',\'https://electrum.org/\')\"',
     }
 }
+
 
 def set_default_subparser(self, name, args=None):
     """see http://stackoverflow.com/questions/5176691/argparse-how-to-specify-a-default-subcommand"""
     subparser_found = False
     for arg in sys.argv[1:]:
-        if arg in ['-h', '--help', '--version']:  # global help/version if no subparser
+        if arg in ['-h', '--help']:  # global help if no subparser
             break
     else:
         for x in self._subparsers._actions:
@@ -1396,6 +1433,7 @@ def set_default_subparser(self, name, args=None):
                 sys.argv.insert(1, name)
             else:
                 args.insert(0, name)
+
 
 argparse.ArgumentParser.set_default_subparser = set_default_subparser
 
@@ -1425,64 +1463,90 @@ def subparser_call(self, parser, namespace, values, option_string=None):
         vars(namespace).setdefault(_UNRECOGNIZED_ARGS_ATTR, [])
         getattr(namespace, _UNRECOGNIZED_ARGS_ATTR).extend(arg_strings)
 
+
 argparse._SubParsersAction.__call__ = subparser_call
 
 
 def add_network_options(parser):
     parser.add_argument("-f", "--serverfingerprint", dest="serverfingerprint", default=None, help="only allow connecting to servers with a matching SSL certificate SHA256 fingerprint." + " " +
                                                                                                   "To calculate this yourself: '$ openssl x509 -noout -fingerprint -sha256 -inform pem -in mycertfile.crt'. Enter as 64 hex chars.")
-    parser.add_argument("-1", "--oneserver", action="store_true", dest="oneserver", default=None, help="connect to one server only")
-    parser.add_argument("-s", "--server", dest="server", default=None, help="set server host:port:protocol, where protocol is either t (tcp) or s (ssl)")
-    parser.add_argument("-p", "--proxy", dest="proxy", default=None, help="set proxy [type:]host[:port] (or 'none' to disable proxy), where type is socks4,socks5 or http")
-    parser.add_argument("--noonion", action="store_true", dest="noonion", default=None, help="do not try to connect to onion servers")
-    parser.add_argument("--skipmerklecheck", action="store_true", dest="skipmerklecheck", default=None, help="Tolerate invalid merkle proofs from server")
+    parser.add_argument("-1", "--oneserver", action="store_true",
+                        dest="oneserver", default=None, help="connect to one server only")
+    parser.add_argument("-s", "--server", dest="server", default=None,
+                        help="set server host:port:protocol, where protocol is either t (tcp) or s (ssl)")
+    parser.add_argument("-p", "--proxy", dest="proxy", default=None,
+                        help="set proxy [type:]host[:port] (or 'none' to disable proxy), where type is socks4,socks5 or http")
+    parser.add_argument("--noonion", action="store_true", dest="noonion",
+                        default=None, help="do not try to connect to onion servers")
+    parser.add_argument("--skipmerklecheck", action="store_true", dest="skipmerklecheck",
+                        default=None, help="Tolerate invalid merkle proofs from server")
+
 
 def add_global_options(parser):
     group = parser.add_argument_group('global options')
-    group.add_argument("-v", dest="verbosity", help="Set verbosity (log levels)", default='')
-    group.add_argument("-V", dest="verbosity_shortcuts", help="Set verbosity (shortcut-filter list)", default='')
-    group.add_argument("-D", "--dir", dest="electrum_path", help="electrum directory")
-    group.add_argument("-P", "--portable", action="store_true", dest="portable", default=False, help="Use local 'electrum_data' directory")
-    group.add_argument("--testnet", action="store_true", dest="testnet", default=False, help="Use Testnet")
-    group.add_argument("--regtest", action="store_true", dest="regtest", default=False, help="Use Regtest")
-    group.add_argument("--simnet", action="store_true", dest="simnet", default=False, help="Use Simnet")
-    group.add_argument("--signet", action="store_true", dest="signet", default=False, help="Use Signet")
-    group.add_argument("-o", "--offline", action="store_true", dest="offline", default=False, help="Run offline")
+    group.add_argument("-v", dest="verbosity",
+                       help="Set verbosity (log levels)", default='')
+    group.add_argument("-V", dest="verbosity_shortcuts",
+                       help="Set verbosity (shortcut-filter list)", default='')
+    group.add_argument("-D", "--dir", dest="electrum_path",
+                       help="electrum directory")
+    group.add_argument("-P", "--portable", action="store_true", dest="portable",
+                       default=False, help="Use local 'electrum_data' directory")
+    group.add_argument("--testnet", action="store_true",
+                       dest="testnet", default=False, help="Use Testnet")
+    group.add_argument("--regtest", action="store_true",
+                       dest="regtest", default=False, help="Use Regtest")
+    group.add_argument("--simnet", action="store_true",
+                       dest="simnet", default=False, help="Use Simnet")
+    group.add_argument("--signet", action="store_true",
+                       dest="signet", default=False, help="Use Signet")
+    group.add_argument("-o", "--offline", action="store_true",
+                       dest="offline", default=False, help="Run offline")
+
 
 def add_wallet_option(parser):
-    parser.add_argument("-w", "--wallet", dest="wallet_path", help="wallet path")
-    parser.add_argument("--forgetconfig", action="store_true", dest="forget_config", default=False, help="Forget config on exit")
+    parser.add_argument(
+        "-w", "--wallet", dest="wallet_path", help="wallet path")
+    parser.add_argument("--forgetconfig", action="store_true",
+                        dest="forget_config", default=False, help="Forget config on exit")
+
 
 def get_parser():
     # create main parser
     parser = argparse.ArgumentParser(
         epilog="Run 'electrum help <command>' to see the help for a command")
-    parser.add_argument("--version", dest="cmd", action='store_const', const='version', help="Return the version of Electrum-BIT.")
     add_global_options(parser)
     add_wallet_option(parser)
     subparsers = parser.add_subparsers(dest='cmd', metavar='<command>')
     # gui
-    parser_gui = subparsers.add_parser('gui', description="Run Electrum-BIT's Graphical User Interface.", help="Run GUI (default)")
-    parser_gui.add_argument("url", nargs='?', default=None, help="bitcoin URI (or bip70 file)")
-    parser_gui.add_argument("-g", "--gui", dest="gui", help="select graphical user interface", choices=['qt', 'kivy', 'text', 'stdio'])
-    parser_gui.add_argument("-m", action="store_true", dest="hide_gui", default=False, help="hide GUI on startup")
-    parser_gui.add_argument("-L", "--lang", dest="language", default=None, help="default language used in GUI")
-    parser_gui.add_argument("--daemon", action="store_true", dest="daemon", default=False, help="keep daemon running after GUI is closed")
-    parser_gui.add_argument("--nosegwit", action="store_true", dest="nosegwit", default=False, help="Do not create segwit wallets")
+    parser_gui = subparsers.add_parser(
+        'gui', description="Run Electrum's Graphical User Interface.", help="Run GUI (default)")
+    parser_gui.add_argument("url", nargs='?', default=None,
+                            help="bitcoin URI (or bip70 file)")
+    parser_gui.add_argument("-g", "--gui", dest="gui",
+                            help="select graphical user interface", choices=['qt', 'kivy', 'text', 'stdio'])
+    parser_gui.add_argument("-m", action="store_true",
+                            dest="hide_gui", default=False, help="hide GUI on startup")
+    parser_gui.add_argument("-L", "--lang", dest="language",
+                            default=None, help="default language used in GUI")
+    parser_gui.add_argument("--daemon", action="store_true", dest="daemon",
+                            default=False, help="keep daemon running after GUI is closed")
+    parser_gui.add_argument("--nosegwit", action="store_true", dest="nosegwit",
+                            default=False, help="Do not create segwit wallets")
     add_wallet_option(parser_gui)
     add_network_options(parser_gui)
     add_global_options(parser_gui)
     # daemon
     parser_daemon = subparsers.add_parser('daemon', help="Run Daemon")
-    parser_daemon.add_argument("-d", "--detached", action="store_true", dest="detach", default=False, help="run daemon in detached mode")
-    parser_daemon.add_argument("--rpcsock", dest="rpcsock", default=None, help="what socket type to which to bind RPC daemon", choices=['unix', 'tcp', 'auto'])
-    parser_daemon.add_argument("--rpcsockpath", dest="rpcsockpath", help="where to place RPC file socket")
+    parser_daemon.add_argument("-d", "--detached", action="store_true",
+                               dest="detach", default=False, help="run daemon in detached mode")
     add_network_options(parser_daemon)
     add_global_options(parser_daemon)
     # commands
     for cmdname in sorted(known_commands.keys()):
         cmd = known_commands[cmdname]
-        p = subparsers.add_parser(cmdname, help=cmd.help, description=cmd.description)
+        p = subparsers.add_parser(
+            cmdname, help=cmd.help, description=cmd.description)
         for optname, default in zip(cmd.options, cmd.defaults):
             if optname in ['wallet_path', 'wallet']:
                 add_wallet_option(p)
@@ -1493,9 +1557,11 @@ def get_parser():
             args = (a, b) if a else (b,)
             if action == 'store':
                 _type = arg_types.get(optname, str)
-                p.add_argument(*args, dest=optname, action=action, default=default, help=help, type=_type)
+                p.add_argument(*args, dest=optname, action=action,
+                               default=default, help=help, type=_type)
             else:
-                p.add_argument(*args, dest=optname, action=action, default=default, help=help)
+                p.add_argument(*args, dest=optname, action=action,
+                               default=default, help=help)
         add_global_options(p)
 
         for param in cmd.params:
@@ -1507,7 +1573,8 @@ def get_parser():
 
         cvh = config_variables.get(cmdname)
         if cvh:
-            group = p.add_argument_group('configuration variables', '(set with setconfig/getconfig)')
+            group = p.add_argument_group(
+                'configuration variables', '(set with setconfig/getconfig)')
             for k, v in cvh.items():
                 group.add_argument(k, nargs='?', help=v)
 

@@ -125,7 +125,7 @@ def parse_fallback(fallback, net: Type[AbstractNet]):
     return addr
 
 
-BOLT11_HRP_INV_DICT = {net.BOLT11_HRP: net for net in constants.NETS_LIST}
+#BOLT11_HRP_INV_DICT = {net.BOLT11_HRP: net for net in constants.NETS_LIST}
 
 
 # Tagged field containing BitArray
@@ -286,7 +286,7 @@ class LnAddr(object):
             return
         assert isinstance(value, Decimal)
         if value.is_nan() or not (0 <= value <= TOTAL_COIN_SUPPLY_LIMIT_IN_BIT):
-            raise LnInvoiceException(f"amount is out-of-bounds: {value!r} BIT")
+            raise LnInvoiceException(f"amount is out-of-bounds: {value!r} BTC")
         if value * 10**12 % 10:
             # max resolution is millisatoshi
             raise LnInvoiceException(f"Cannot encode {value!r}: too many decimal places")
@@ -508,8 +508,7 @@ def lndecode(invoice: str, *, verbose=False, net=None) -> LnAddr:
         #
         # A reader MUST use the `n` field to validate the signature instead of
         # performing signature recovery if a valid `n` field is provided.
-        if not ecc.ECPubkey(addr.pubkey).verify_message_hash(sigdecoded[:64], hrp_hash):
-            raise LnDecodeException("bad signature")
+        ecc.ECPubkey(addr.pubkey).verify_message_hash(sigdecoded[:64], hrp_hash)
         pubkey_copy = addr.pubkey
         class WrappedBytesKey:
             serialize = lambda: pubkey_copy

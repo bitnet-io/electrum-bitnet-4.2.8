@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 #
 # This script is just a demonstration how one could go about bruteforcing an
-# Electrum-BIT wallet file password. As it is pure-python and runs in the CPU,
+# Electrum wallet file password. As it is pure-python and runs in the CPU,
 # it is horribly slow. It could be changed to utilise multiple threads
 # but any serious attempt would need at least GPU acceleration.
 #
 # There are two main types of password encryption that need to be disambiguated
-# for Electrum-BIT wallets:
+# for Electrum wallets:
 # (1) keystore-encryption: The wallet file itself is mostly plaintext (json),
-#                          only the Bitcoin private keys themselves are encrypted.
+#                          only the BitnetIO private keys themselves are encrypted.
 #                          (e.g. seed words, xprv are encrypted; addresses are not)
 #                          Even in memory (at runtime), the private keys are typically
 #                          stored encrypted, and only when needed the user is prompted
@@ -16,8 +16,8 @@
 # (2) storage-encryption: The file itself is encrypted. When opened in a text editor,
 #                         it is base64 ascii text. Normally storage-encrypted wallets
 #                         also have keystore-encryption (unless they don't have private keys).
-# Storage-encryption was introduced in Electrum-BIT 2.8, keystore-encryption predates that.
-# Newly created wallets in modern Electrum-BIT have storage-encryption enabled by default.
+# Storage-encryption was introduced in Electrum 2.8, keystore-encryption predates that.
+# Newly created wallets in modern Electrum have storage-encryption enabled by default.
 #
 # Storage encryption uses a stronger KDF than keystore-encryption.
 # As is, this script can test around ~1000 passwords per second for storage-encryption.

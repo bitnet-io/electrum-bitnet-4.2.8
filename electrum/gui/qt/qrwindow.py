@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Electrum-BIT - lightweight Bitcoin client
+# Electrum - lightweight BitnetIO client
 # Copyright (C) 2014 Thomas Voegtlin
 #
 # Permission is hereby granted, free of charge, to any person
@@ -36,7 +36,7 @@ class QR_Window(QWidget):
     def __init__(self, win):
         QWidget.__init__(self)
         self.win = win
-        self.setWindowTitle('Electrum-BIT - '+_('Payment Request'))
+        self.setWindowTitle('Electrum - '+_('Payment Request'))
         self.setMinimumSize(800, 800)
         self.setFocusPolicy(Qt.NoFocus)
         main_box = QHBoxLayout()

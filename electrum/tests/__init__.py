@@ -32,7 +32,7 @@ class SequentialTestCase(unittest.TestCase):
         self.test_lock.release()
 
 
-class Electrum-BITTestCase(SequentialTestCase):
+class ElectrumTestCase(SequentialTestCase):
     """Base class for our unit tests."""
 
     def setUp(self):
@@ -44,7 +44,7 @@ class Electrum-BITTestCase(SequentialTestCase):
         shutil.rmtree(self.electrum_path)
 
 
-class TestCaseForTestnet(Electrum-BITTestCase):
+class TestCaseForTestnet(ElectrumTestCase):
 
     @classmethod
     def setUpClass(cls):

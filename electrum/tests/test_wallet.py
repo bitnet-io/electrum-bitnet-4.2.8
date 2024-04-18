@@ -19,7 +19,7 @@ from electrum.wallet_db import WalletDB
 from electrum.simple_config import SimpleConfig
 from electrum import util
 
-from . import Electrum-BITTestCase
+from . import ElectrumTestCase
 
 
 class FakeSynchronizer(object):
@@ -31,7 +31,7 @@ class FakeSynchronizer(object):
         self.store.append(address)
 
 
-class WalletTestCase(Electrum-BITTestCase):
+class WalletTestCase(ElectrumTestCase):
 
     def setUp(self):
         super(WalletTestCase, self).setUp()
@@ -120,7 +120,7 @@ class FakeWallet:
 txid = 'abc'
 ccy = 'TEST'
 
-class TestFiat(Electrum-BITTestCase):
+class TestFiat(ElectrumTestCase):
     def setUp(self):
         super().setUp()
         self.value_sat = COIN
