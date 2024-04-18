@@ -1,7 +1,7 @@
 [app]
 
 # (str) Title of your application
-title = Electrum-BIT
+title = Electrum-URX
 
 # (str) Package name
 package.name = Uraniumx
