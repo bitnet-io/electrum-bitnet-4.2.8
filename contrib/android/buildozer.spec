@@ -1,10 +1,10 @@
 [app]
 
 # (str) Title of your application
-title = Electrum-URX
+title = Electrum-WAF
 
 # (str) Package name
-package.name = Uraniumx
+package.name = Waifu
 
 # (str) Package domain (needed for android/ios packaging)
 package.domain = org.electrum

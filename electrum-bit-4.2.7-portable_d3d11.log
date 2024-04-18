@@ -1,0 +1,3 @@
+warn:  D3D11CreateDevice: Unsupported driver type
+err:   D3D11CreateDevice: Failed to create a DXGI factory
+err:   D3D11CreateDevice: Failed to create a DXGI factory

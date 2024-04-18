@@ -165,20 +165,20 @@ info "Installing build dependencies."
 #       - the whole of "requirements-build-base.txt", which includes pip and friends, as it also includes "wheel",
 #         and I am not quite sure how to break the circular dependence there (I guess we could introduce
 #         "requirements-build-base-base.txt" with just wheel in it...)
-"$python" -m pip install --no-build-isolation --no-dependencies --no-warn-script-location \
+"$python" -m pip install --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org --no-build-isolation --no-dependencies --no-warn-script-location \
     --cache-dir "$PIP_CACHE_DIR" -r "$CONTRIB/deterministic-build/requirements-build-base.txt"
-"$python" -m pip install --no-build-isolation --no-dependencies --no-binary :all: --no-warn-script-location \
+"$python" -m pip install --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org --no-build-isolation --no-dependencies --no-binary :all: --no-warn-script-location \
     --cache-dir "$PIP_CACHE_DIR" -r "$CONTRIB/deterministic-build/requirements-build-appimage.txt"
 
 info "installing electrum and its dependencies."
-"$python" -m pip install --no-build-isolation --no-dependencies --no-binary :all: --no-warn-script-location \
+"$python" -m pip install --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org --no-build-isolation --no-dependencies --no-binary :all: --no-warn-script-location \
     --cache-dir "$PIP_CACHE_DIR" -r "$CONTRIB/deterministic-build/requirements.txt"
-"$python" -m pip install --no-build-isolation --no-dependencies --no-binary :all: --only-binary PyQt5,PyQt5-Qt5,cryptography --no-warn-script-location \
+"$python" -m pip install --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org --no-build-isolation --no-dependencies --no-binary :all: --only-binary PyQt5,PyQt5-Qt5,cryptography --no-warn-script-location \
     --cache-dir "$PIP_CACHE_DIR" -r "$CONTRIB/deterministic-build/requirements-binaries.txt"
-"$python" -m pip install --no-build-isolation --no-dependencies --no-binary :all: --no-warn-script-location \
+"$python" -m pip install --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org --no-build-isolation --no-dependencies --no-binary :all: --no-warn-script-location \
     --cache-dir "$PIP_CACHE_DIR" -r "$CONTRIB/deterministic-build/requirements-hw.txt"
 
-"$python" -m pip install --no-build-isolation --no-dependencies --no-warn-script-location \
+"$python" -m pip install --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org --no-build-isolation --no-dependencies --no-warn-script-location \
     --cache-dir "$PIP_CACHE_DIR" "$PROJECT_ROOT"
 
 # was only needed during build time, not runtime

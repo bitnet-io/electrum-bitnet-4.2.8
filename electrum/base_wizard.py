@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Electrum - lightweight BitnetIO client
+# Electrum-BIT - lightweight Bitcoin client
 # Copyright (C) 2016 Thomas Voegtlin
 #
 # Permission is hereby granted, free of charge, to any person
@@ -35,8 +35,7 @@ from . import keystore
 from . import mnemonic
 from .bip32 import is_bip32_derivation, xpub_type, normalize_bip32_derivation, BIP32Node
 from .keystore import bip44_derivation, purpose48_derivation, Hardware_KeyStore, KeyStore, bip39_to_seed
-from .wallet import (Imported_Wallet, Standard_Wallet, 
-#Multisig_Wallet,
+from .wallet import (Imported_Wallet, Standard_Wallet, Multisig_Wallet,
                      wallet_types, Wallet, Abstract_Wallet)
 from .storage import WalletStorage, StorageEncryptionVersion
 from .wallet_db import WalletDB
@@ -146,10 +145,9 @@ class BaseWizard(Logger):
         ])
         wallet_kinds = [
             ('standard',  _("Standard wallet")),
-           
-# ('2fa', _("Wallet with two-factor authentication")),
-           # ('multisig',  _("Multi-signature wallet")),
-            ('imported',  _("Import BitnetIO addresses or private keys")),
+#            ('2fa', _("Wallet with two-factor authentication")),
+#            ('multisig',  _("Multi-signature wallet")),
+            ('imported',  _("Import Bitnet IO addresses or private keys")),
         ]
         choices = [pair for pair in wallet_kinds if pair[0] in wallet_types]
         self.choice_dialog(title=title, message=message, choices=choices, run_next=self.on_wallet_type)
@@ -185,11 +183,11 @@ class BaseWizard(Logger):
         self.data['wallet_type'] = self.wallet_type = choice
         if choice == 'standard':
             action = 'choose_keystore'
-      #  elif choice == 'multisig':
-       #     action = 'choose_multisig'
-       # elif choice == '2fa':
-       #     self.load_2fa()
-       #     action = self.plugin.get_action(self.data)
+        elif choice == 'multisig':
+            action = 'choose_multisig'
+        elif choice == '2fa':
+            self.load_2fa()
+            action = self.plugin.get_action(self.data)
         elif choice == 'imported':
             action = 'import_addresses_or_keys'
         self.run(action)
@@ -203,7 +201,7 @@ class BaseWizard(Logger):
         self.multisig_dialog(run_next=on_multisig)
 
     def choose_keystore(self):
-        assert self.wallet_type in ['standard']
+        assert self.wallet_type in ['standard', 'multisig']
         i = len(self.keystores)
         title = _('Add cosigner') + ' (%d of %d)'%(i+1, self.n) if self.wallet_type=='multisig' else _('Keystore')
         if self.wallet_type =='standard' or i==0:
@@ -211,26 +209,25 @@ class BaseWizard(Logger):
             choices = [
                 ('choose_seed_type', _('Create a new seed')),
                 ('restore_from_seed', _('I already have a seed')),
-          #      ('restore_from_key', _('Use a master key')),
+#                ('restore_from_key', _('Use a master key')),
             ]
-            if not self.is_kivy:
-#               choices.append(('choose_hw_device',  _('Use a hardware device')))
-               message = ('no hardware support')
+#            if not self.is_kivy:
+#                choices.append(('choose_hw_device',  _('Use a hardware device')))
         else:
             message = _('Add a cosigner to your multi-sig wallet')
             choices = [
                 ('restore_from_key', _('Enter cosigner key')),
                 ('restore_from_seed', _('Enter cosigner seed')),
             ]
-            if not self.is_kivy:
-                choices.append(('choose_hw_device',  _('Cosign with hardware device')))
+ #           if not self.is_kivy:
+ #               choices.append(('choose_hw_device',  _('Cosign with hardware device')))
 
         self.choice_dialog(title=title, message=message, choices=choices, run_next=self.run)
 
     def import_addresses_or_keys(self):
         v = lambda x: keystore.is_address_list(x) or keystore.is_private_key_list(x, raise_on_error=True)
-        title = _("Import BitnetIO Addresses")
-        message = _("Enter a list of BitnetIO addresses (this will create a watching-only wallet), or a list of private keys.")
+        title = _("Import Bitnet IO Addresses")
+        message = _("Enter a list of Bitnet IO addresses (this will create a watching-only wallet), or a list of private keys.")
         self.add_xpub_dialog(title=title, message=message, run_next=self.on_import,
                              is_valid=v, allow_multi=True, show_wif_help=True)
 
@@ -339,7 +336,7 @@ class BaseWizard(Logger):
             if sys.platform == 'win32':
                 msg += _('If your device is not detected on Windows, go to "Settings", "Devices", "Connected devices", '
                          'and do "Remove device". Then, plug your device again.') + '\n'
-                msg += _('While this is less than ideal, it might help if you run Electrum as Administrator.') + '\n'
+                msg += _('While this is less than ideal, it might help if you run Electrum-BIT as Administrator.') + '\n'
             else:
                 msg += _('On Linux, you might have to add a new permission to your udev rules.') + '\n'
             msg += '\n\n'
@@ -416,48 +413,47 @@ class BaseWizard(Logger):
             _('If you are not sure what this is, leave this field unchanged.')
         ])
         hide_choices = False
-      #  if self.wallet_type == 'multisig':
+        if self.wallet_type == 'multisig':
             # There is no general standard for HD multisig.
             # For legacy, this is partially compatible with BIP45; assumes index=0
             # For segwit, a custom path is used, as there is no standard at all.
-       #      default_choice_idx = 0
-        #     choices = [
-           
-     #('standard',   'legacy multisig (p2sh)',            normalize_bip32_derivation("m/45'/0")),
-            #    ('p2wsh-p2sh', 'p2sh-segwit multisig (p2wsh-p2sh)', purpose48_derivation(0, xtype='p2wsh-p2sh')),
-            #    ('p2wsh',      'native segwit multisig (p2wsh)',    purpose48_derivation(0, xtype='p2wsh')),
-         #   ]
+            default_choice_idx = 2
+            choices = [
+                ('standard',   'legacy multisig (p2sh)',            normalize_bip32_derivation("m/45'/0")),
+                ('p2wsh-p2sh', 'p2sh-segwit multisig (p2wsh-p2sh)', purpose48_derivation(0, xtype='p2wsh-p2sh')),
+                ('p2wsh',      'native segwit multisig (p2wsh)',    purpose48_derivation(0, xtype='p2wsh')),
+            ]
             # if this is not the first cosigner, pre-select the expected script type,
             # and hide the choices
- #           script_type = self.get_script_type_of_wallet()
-  #          if script_type is not None:
-   #             script_types = [*zip(*choices)][0]
-    #            chosen_idx = script_types.index(script_type)
-     #           default_choice_idx = chosen_idx
-      #          hide_choices = True
-       # else:
-        #    default_choice_idx = 0
-         #   choices = [
-          #      ('standard',    'legacy (p2pkh)',            bip44_derivation(0, bip43_purpose=44)),
-             #   ('p2wpkh-p2sh', 'p2sh-segwit (p2wpkh-p2sh)', bip44_derivation(0, bip43_purpose=49)),
-             #   ('p2wpkh',      'native segwit (p2wpkh)',    bip44_derivation(0, bip43_purpose=84)),
-          #  ]
-       # while True:
-        #    try:
-         #       self.derivation_and_script_type_gui_specific_dialog(
-          #          run_next=f,
-           #         title=_('Script type and Derivation path'),
-            #        message1=message1,
-             #       message2=message2,
-              #      choices=choices,
-               #     test_text=is_bip32_derivation,
-                #    default_choice_idx=default_choice_idx,
-                 #   get_account_xpub=get_account_xpub,
-                 #   hide_choices=hide_choices,
-               # )
-              #  return
-           # except ScriptTypeNotSupported as e:
-            #    self.show_error(e)
+            script_type = self.get_script_type_of_wallet()
+            if script_type is not None:
+                script_types = [*zip(*choices)][0]
+                chosen_idx = script_types.index(script_type)
+                default_choice_idx = chosen_idx
+                hide_choices = True
+        else:
+            default_choice_idx = 2
+            choices = [
+                ('standard',    'legacy (p2pkh)',            bip44_derivation(0, bip43_purpose=44)),
+                ('p2wpkh-p2sh', 'p2sh-segwit (p2wpkh-p2sh)', bip44_derivation(0, bip43_purpose=49)),
+                ('p2wpkh',      'native segwit (p2wpkh)',    bip44_derivation(0, bip43_purpose=84)),
+            ]
+        while True:
+            try:
+                self.derivation_and_script_type_gui_specific_dialog(
+                    run_next=f,
+                    title=_('Script type and Derivation path'),
+                    message1=message1,
+                    message2=message2,
+                    choices=choices,
+                    test_text=is_bip32_derivation,
+                    default_choice_idx=default_choice_idx,
+                    get_account_xpub=get_account_xpub,
+                    hide_choices=hide_choices,
+                )
+                return
+            except ScriptTypeNotSupported as e:
+                self.show_error(e)
                 # let the user choose again
 
     def on_hw_derivation(self, name, device_info: 'DeviceInfo', derivation, xtype):
@@ -542,7 +538,6 @@ class BaseWizard(Logger):
         else:
             raise Exception('Unknown seed type', self.seed_type)
 
-
     def on_restore_bip43(self, root_seed):
         def f(derivation, script_type):
             derivation = normalize_bip32_derivation(derivation)
@@ -579,7 +574,7 @@ class BaseWizard(Logger):
         if has_xpub:
             t1 = xpub_type(k.xpub)
         if self.wallet_type == 'standard':
-            if has_xpub and t1 not in ['standard']:
+            if has_xpub and t1 not in ['standard', 'p2wpkh', 'p2wpkh-p2sh']:
                 self.show_error(_('Wrong key type') + ' %s'%t1)
                 self.run('choose_keystore')
                 return
@@ -587,7 +582,7 @@ class BaseWizard(Logger):
             self.run('create_wallet')
         elif self.wallet_type == 'multisig':
             assert has_xpub
-            if t1 not in ['standard']:
+            if t1 not in ['standard', 'p2wsh', 'p2wsh-p2sh']:
                 self.show_error(_('Wrong key type') + ' %s'%t1)
                 self.run('choose_keystore')
                 return
@@ -661,9 +656,9 @@ class BaseWizard(Logger):
             self.data['seed_type'] = self.seed_type
             keys = self.keystores[0].dump()
             self.data['keystore'] = keys
-        #elif self.wallet_type == 'multisig':
-         #   for i, k in enumerate(self.keystores):
-          #      self.data['x%d/'%(i+1)] = k.dump()
+        elif self.wallet_type == 'multisig':
+            for i, k in enumerate(self.keystores):
+                self.data['x%d/'%(i+1)] = k.dump()
         elif self.wallet_type == 'imported':
             if len(self.keystores) > 0:
                 keys = self.keystores[0].dump()
@@ -702,7 +697,7 @@ class BaseWizard(Logger):
         self.show_xpub_dialog(xpub=xpub, run_next=lambda x: self.run('choose_keystore'))
 
     def choose_seed_type(self):
-        seed_type = 'standard' if self.config.get('nosegwit') else 'standard'
+        seed_type = 'standard' if self.config.get('nosegwit') else 'segwit'
         self.create_seed(seed_type)
 
     def create_seed(self, seed_type):

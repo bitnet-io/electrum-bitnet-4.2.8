@@ -1,23 +1,15 @@
-for ElectrumX uraniumX (BIT) server
-https://github.com/c4pt000/ElectrumX-server-UraniumX
-
-# for androi
-# https://drive.google.com/file/d/1WByxyLy0Y4ygmjHLlqBtHQubZLyQa1mr/view?usp=sharing
-
+# build for windows setup.exe, portable.exe (wine builder) requires docker
 
 ```
-cd /usr/bin
-wget https://github.com/c4pt000/electrum-bitnet/releases/download/electrum-bitnet/electrum-bitnet.tar.gz
-tar -xvf electrum-bitnet.tar.gz
+cd contrib/build-wine
+docker build -t electrum-wine-builder-img .
+cd ../../
+./contrib/build-wine/build-binary.sh
+
+cd /opt/wine64/drive_c/electrum
+./make_win.sh
 ```
-![s1](https://raw.githubusercontent.com/c4pt000/electrum-bitnet/main/ascii-art.png)
-![s1](https://raw.githubusercontent.com/c4pt000/electrum-bitnet/main/history.png)
-![s1](https://raw.githubusercontent.com/c4pt000/electrum-bitnet/main/payto.png)
-![s1](https://raw.githubusercontent.com/c4pt000/electrum-bitnet/main/paytoconfirm.png)
-![s1](https://raw.githubusercontent.com/c4pt000/electrum-bitnet/main/paytoconfirm-sent.png)
-
-
-# macOS (requires python3 , xcode command line tools)
+# macOS python3.10 , xcode command line tools)
 ```
 cd electrum-bitnet
 python3 -m pip install --upgrade pip
@@ -29,3 +21,4 @@ sh make_libsecp256k1.sh
 cd ..
 ./run_electrum
 ```
+# macos dmg builder (requires intel macOS (arm64 hybrid fails...suggest BigSur)
