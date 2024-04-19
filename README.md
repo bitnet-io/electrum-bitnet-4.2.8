@@ -53,6 +53,10 @@ exit
 
 cp -rf dist/Bitnet-4.2.7.0-arm64-v8a-debug.apk .
 
+in order to "sign" the apk with a cert you need apksigner from android build-tools installed with your host
+
+/Android/Sdk/build-tools/34.0.0/apksigner
+
 
 ```
 
