@@ -1,4 +1,4 @@
- docker run -it -d --rm \
+ docker run -it -d --net host --rm \
     -v $PWD:/home/user/wspace/electrum \
     -v $PWD/.buildozer/.gradle:/home/user/.gradle \
     --workdir /home/user/wspace/electrum \
