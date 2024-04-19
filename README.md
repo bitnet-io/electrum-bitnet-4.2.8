@@ -24,6 +24,43 @@ cd ../../../
 
 ./make_appimage.sh 
 ```
+
+# building for android (requires docker)
+
+```
+git clone https://github.com/bitnet-io/electrum-bitnet-4.2.7
+cd electrum-bitnet-4.2.7
+
+sh android-builder-docker.sh
+
+enter the docker guest
+
+┌─[root@nwstrtrj01 04-18-2024-17:24:30] ]─[/home/c4pt000/opt/ELECTRUM-URANIUMX-04-13-2024/electrum-bitnet-4.1.5]
+└──╼ # sh android-builder-docker.sh 
+eb6180cefd0a6f14756557e7f8cd2dfd7b3f80eb905e266a5f614dec178feffb
+
+docker exec -it eb6 bash
+
+hit crtl-C a few times to stop .bashrc scripts from running
+
+run make_apk then hit "Y" for Yes
+
+./contrib/android/make_apk
+
+should build the apk into dist/
+
+exit
+
+cp -rf dist/Bitnet-4.2.7.0-arm64-v8a-debug.apk .
+
+
+```
+
+
+
+
+
+
 # macOS python3.10 , xcode command line tools)
 
 ```
