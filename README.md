@@ -25,7 +25,7 @@ cd ../../../
 ./make_appimage.sh 
 ```
 
-# building for android (requires docker + nodejs + apksigner to sign the debug.apk)
+# building for android (requires docker + java11 + nodejs + apksigner to sign the debug.apk)
 
 ```
 git clone https://github.com/bitnet-io/electrum-bitnet-4.2.7
