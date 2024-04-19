@@ -25,7 +25,7 @@ cd ../../../
 ./make_appimage.sh 
 ```
 
-# building for android (requires docker)
+# building for android (requires docker + nodejs + apksigner to sign the debug.apk)
 
 ```
 git clone https://github.com/bitnet-io/electrum-bitnet-4.2.7
@@ -57,6 +57,11 @@ in order to "sign" the apk with a cert you need apksigner from android build-too
 
 /Android/Sdk/build-tools/34.0.0/apksigner
 
+adjust this script to your path to apksigner create-keystore-and-sign.sh
+
+then run the script
+
+sh create-keystore-and-sign.sh
 
 ```
 
