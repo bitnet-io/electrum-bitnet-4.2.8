@@ -59,9 +59,13 @@ in order to "sign" the apk with a cert you need apksigner from android build-too
 
 adjust this script to your path to apksigner create-keystore-and-sign.sh
 
-then run the script
+then run the script to sign the debug .apk
 
 sh create-keystore-and-sign.sh
+
+script will output a signed apk
+
+Bitnet-4.2.7.0-arm64-v8a-signed.apk
 
 ```
 
