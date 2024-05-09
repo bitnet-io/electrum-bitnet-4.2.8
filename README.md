@@ -1,7 +1,9 @@
 
-# requires older python3 aiorpcx == 0.18.7 or wont work
+# requires older python3 aiorpcx == 0.18.7 and libsecp256k1.so.0 or wont work
 ```
 python3 -m pip install aiorpcx==0.18.7
+./contrib/make_libsecp256k1.sh
+python3 run_electrum
 ```
 
 # build for windows setup.exe, portable.exe (wine builder) requires docker
