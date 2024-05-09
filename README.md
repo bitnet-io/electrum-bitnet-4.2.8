@@ -1,7 +1,10 @@
 
 # requires older python3 aiorpcx == 0.18.7 and libsecp256k1.so.0 or wont work
 ```
+git clone https://github.com/bitnet-io/electrum-bitnet-4.2.7
+cd electrum-bitnet-4.2.7
 python3 -m pip install aiorpcx==0.18.7
+python3 -m pip install .
 ./contrib/make_libsecp256k1.sh
 python3 run_electrum
 ```
