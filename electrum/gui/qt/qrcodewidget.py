@@ -49,7 +49,8 @@ class QRCodeWidget(QWidget):
         if not self.data:
             return
 
-        black = QColor(0, 0, 0, 255)
+       #black = QColor(0, 0, 0, 255)
+        black = QColor(0, 0, 0, 200)
         white = QColor(255, 255, 255, 255)
         black_pen = QPen(black)
         black_pen.setJoinStyle(Qt.MiterJoin)
