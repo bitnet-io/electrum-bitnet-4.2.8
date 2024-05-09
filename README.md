@@ -1,3 +1,9 @@
+
+# requires older python3 aiorpcx == 0.18.7 or wont work
+```
+python3 -m pip install aiorpcx==0.18.7
+```
+
 # build for windows setup.exe, portable.exe (wine builder) requires docker
 ```
 git clone https://github.com/bitnet-io/electrum-bitnet-4.2.7
