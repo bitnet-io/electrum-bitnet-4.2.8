@@ -518,8 +518,8 @@ class Interface(Logger):
                 self.logger.log(e.log_level, f"disconnecting due to {repr(e)}")
             except aiorpcx.jsonrpc.RPCError as e:
                 self.logger.warning(f"disconnecting due to {repr(e)}")
-                self.logger.debug(f"(disconnect) trace for {
-                                  repr(e)}", exc_info=True)
+                self.logger.debug(f"(disconnect) trace for {repr(e)}", exc_info=True)
+
             finally:
                 self.got_disconnected.set()
                 await self.network.connection_down(self)
