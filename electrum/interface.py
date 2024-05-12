@@ -292,8 +292,8 @@ class ServerAddr:
         try:
             net_addr = NetAddress(host, port)  # this validates host and port
         except Exception as e:
-            raise ValueError(f"cannot construct ServerAddr: invalid host or port (host={
-                             host}, port={port})") from e
+            raise ValueError(f"cannot construct ServerAddr: invalid host or port (host={host}, port={port})") from e
+
         if protocol not in _KNOWN_NETWORK_PROTOCOLS:
             raise ValueError(f"invalid network protocol: {protocol}")
         self.host = str(net_addr.host)  # canonical form (if e.g. IPv6 address)
