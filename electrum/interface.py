@@ -768,14 +768,12 @@ class Interface(Logger):
             util.trigger_callback('network_updated')
             await self.network.switch_unwanted_fork_interface()
             await self.network.switch_lagging_interface()
-            # new json connect
+            # new json connect for topology mapping
             url = 'https://bitnet-io.org/connect.json'
             data = requests.get(url).json
 
-            # payload = open("connect.json")
-            # headers = {'content-type': 'application/json',
-            #           'Accept-Charset': 'UTF-8'}
-            # r = requests.post(url, data=payload, headers=headers)
+           
+  
 
     async def _process_header_at_tip(self):
         height, header = self.tip, self.tip_header
