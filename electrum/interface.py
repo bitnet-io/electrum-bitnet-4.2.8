@@ -563,8 +563,8 @@ class Interface(Logger):
             self.blockchain = chain
         assert self.blockchain is not None
 
-        self.logger.info(f"set blockchain with height {
-                         self.blockchain.height()}")
+        self.logger.info(f"set blockchain with height {self.blockchain.height()}")
+
 
         self.ready.set_result(1)
 
