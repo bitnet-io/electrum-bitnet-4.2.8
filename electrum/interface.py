@@ -621,8 +621,8 @@ class Interface(Logger):
         self.logger.info("cert fingerprint verification passed")
 
     async def get_block_header(self, height, assert_mode):
-        self.logger.info(f'requesting block header {
-                         height} in mode {assert_mode}')
+        self.logger.info(f'requesting block header {height} in mode {assert_mode}')
+
         # use lower timeout as we usually have network.bhi_lock here
         timeout = self.network.get_network_timeout_seconds(
             NetworkTimeout.Urgent)
