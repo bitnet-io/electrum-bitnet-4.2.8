@@ -3,8 +3,9 @@
 ```
 git clone https://github.com/bitnet-io/electrum-bitnet-4.2.7
 cd electrum-bitnet-4.2.7
-python3 -m pip install aiorpcx==0.18.7
 python3 -m pip install .
+python3 -m pip install aiorpcx==0.18.7 cryptography requests PyQt5 protobuf==3.20.0
+
 ./contrib/make_libsecp256k1.sh
 python3 run_electrum
 ```
