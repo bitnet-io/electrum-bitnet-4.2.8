@@ -162,8 +162,7 @@ class NotificationSession(RPCSession):
             else:
                 raise Exception(f'unexpected request. not a notification')
         except Exception as e:
-            self.interface.logger.info(f"error handling request {
-                                       request}. exc: {repr(e)}")
+            self.interface.logger.info(f"error handling request {request}. exc: {repr(e)}")
             await self.close()
 
     async def send_request(self, *args, timeout=None, **kwargs):
