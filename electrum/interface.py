@@ -856,8 +856,8 @@ class Interface(Logger):
         while True:
             assert good < bad, (good, bad)
             height = (good + bad) // 2
-            self.logger.info(f"binary step. good {good}, bad {
-                             bad}, height {height}")
+            self.logger.info(f"binary step. good {good}, bad {bad}, height {height}")
+
             header = await self.get_block_header(height, 'binary')
             chain = blockchain.check_header(
                 header) if 'mock' not in header else header['mock']['check'](header)
