@@ -177,8 +177,8 @@ class NotificationSession(RPCSession):
                 super().send_request(*args, **kwargs),
                 timeout)
         except (TaskTimeout, asyncio.TimeoutError) as e:
-            raise RequestTimedOut(f'request timed out: {
-                                  args} (id: {msg_id})') from e
+            raise RequestTimedOut(f'request timed out: {args} (id: {msg_id})') from e
+
         except CodeMessageError as e:
             self.maybe_log(f"--> {repr(e)} (id: {msg_id})")
             raise
