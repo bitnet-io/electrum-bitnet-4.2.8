@@ -1,8 +1,8 @@
 
 # requires older python3 aiorpcx == 0.18.7 and libsecp256k1.so.0 or wont work
 ```
-git clone https://github.com/bitnet-io/electrum-bitnet-4.2.7
-cd electrum-bitnet-4.2.7
+git clone https://github.com/bitnet-io/electrum-bitnet-4.2.8
+cd electrum-bitnet-4.2.8
 python3 -m pip install .
 python3 -m pip install aiorpcx==0.18.7 cryptography requests PyQt5 protobuf==3.20.0
 
@@ -12,8 +12,8 @@ python3 run_electrum
 
 # build for windows setup.exe, portable.exe (wine builder) requires docker
 ```
-git clone https://github.com/bitnet-io/electrum-bitnet-4.2.7
-cd electrum-bitnet-4.2.7
+git clone https://github.com/bitnet-io/electrum-bitnet-4.2.8
+cd electrum-bitnet-4.2.8
 
 cd contrib/build-wine
 docker build -t electrum-wine-builder-img .
@@ -26,8 +26,8 @@ cd /opt/wine64/drive_c/electrum
 # Linux AppImage (requires docker)
 ```
 
-git clone https://github.com/bitnet-io/electrum-bitnet-4.2.7
-cd electrum-bitnet-4.2.7
+git clone https://github.com/bitnet-io/electrum-bitnet-4.2.8
+cd electrum-bitnet-4.2.8
 
 cd contrib/build-linux-appimage
 docker build -t electrum-appimage-builder-img .
@@ -40,8 +40,8 @@ cd ../../../
 # building for android (requires docker + java11 + nodejs + apksigner to sign the debug.apk)
 
 ```
-git clone https://github.com/bitnet-io/electrum-bitnet-4.2.7
-cd electrum-bitnet-4.2.7
+git clone https://github.com/bitnet-io/electrum-bitnet-4.2.8
+cd electrum-bitnet-4.2.8
 
 sh android-builder-docker.sh
 
@@ -63,7 +63,7 @@ should build the apk into dist/
 
 exit
 
-cp -rf dist/Bitnet-4.2.7.0-arm64-v8a-debug.apk .
+cp -rf dist/Bitnet-4.2.8.0-arm64-v8a-debug.apk .
 
 in order to "sign" the apk with a cert you need apksigner from android build-tools installed with your host
 
@@ -77,7 +77,7 @@ sh create-keystore-and-sign.sh
 
 script will output a signed apk
 
-Bitnet-4.2.7.0-arm64-v8a-signed.apk
+Bitnet-4.2.8.0-arm64-v8a-signed.apk
 
 ```
 
@@ -89,8 +89,8 @@ Bitnet-4.2.7.0-arm64-v8a-signed.apk
 # macOS python3.10 , xcode command line tools)
 
 ```
-git clone https://github.com/bitnet-io/electrum-bitnet-4.2.7
-cd electrum-bitnet-4.2.7
+git clone https://github.com/bitnet-io/electrum-bitnet-4.2.8
+cd electrum-bitnet-4.2.8
 
 cd electrum-bitnet
 python3 -m pip install --upgrade pip

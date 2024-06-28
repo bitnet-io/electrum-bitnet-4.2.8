@@ -22,6 +22,9 @@
 # ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+import random
+import time
+import string
 import sys
 import time
 import threading
@@ -773,12 +776,12 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
 
         help_menu = menubar.addMenu(_("&Help"))
         help_menu.addAction(_("&About"), self.show_about)
-        help_menu.addAction(_("&Check for updates"), self.show_update_check)
-        help_menu.addAction(_("&Official website"), lambda: webopen("https://electrum.org"))
+#        help_menu.addAction(_("&Check for updates"), self.show_update_check)
+        help_menu.addAction(_("&Official website"), lambda: webopen("https://bitnet-io.org"))
         help_menu.addSeparator()
-        help_menu.addAction(_("&Documentation"), lambda: webopen("http://docs.electrum.org/")).setShortcut(QKeySequence.HelpContents)
-        if not constants.net.TESTNET:
-            help_menu.addAction(_("&BitnetIO Paper"), self.show_bitcoin_paper)
+        help_menu.addAction(_("&Documentation from Bitcoin"), lambda: webopen("http://docs.electrum.org/")).setShortcut(QKeySequence.HelpContents)
+#        if not constants.net.TESTNET:
+        help_menu.addAction(_("&BitnetIO Paper"), self.show_bitcoin_paper)
         help_menu.addAction(_("&Report Bug"), self.show_report_bug)
         help_menu.addSeparator()
         help_menu.addAction(_("&Donate to server"), self.donate_to_server)
@@ -790,9 +793,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
         if d:
  #           host = self.network.get_parameters().server.host
 #            self.pay_to_URI('bitnet:%s?message=donation for %s'%(d, host))
-            self.show_error(_('zelle payment $1.00 or $10.00 usd (whatever you feel like) @ harley0006@gmail.com'))
+            self.show_message(_('contact devdataspace@gmail.com'))
         else:
-            self.show_error(_('zelle payment $1.00 or $10.00 usd (whatever you feel like) @ harley0006@gmail.com'))
+            self.show_message(_('contact devdataspace@gmail.com'))
 #            self.show_error(_('No donation address for this server'))
 
     def show_about(self):
@@ -802,20 +805,23 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
                            _("You do not need to perform regular backups, because your wallet can be "
                               "recovered from a secret phrase that you can memorize or write on paper.") + " " +
                            _("Startup times are instant because it operates in conjunction with high-performance "
-                              "servers that handle the most complicated parts of the BitnetIO system.") + "\n\n" +
+                              "servers that handle the most complicated parts of the BitnetIO system.") + "\n\n" + "\n\n" + "\n\n" +
+                           _("Electrum-BIT is heavily modifed fork from Electrum BTC source respectively.") + "\n\n" + "\n\n" +
+                           _("theses forks of Electrum-BIT designed by dhweinberg") + "\n\n" + "\n\n" +
                            _("Uses icons from the Icons8 icon pack (icons8.com).")))
 
     def show_bitcoin_paper(self):
-        filename = os.path.join(self.config.path, 'bitnet.pdf')
-        if not os.path.exists(filename):
-            s = self._fetch_tx_from_network("05afa15162271b7b03d950b04df8f6a8429c696d53601e7163df4fc5514564f5")
-            if not s:
-                return
-            s = s.split("0100000000000000")[1:-1]
-            out = ''.join(x[6:136] + x[138:268] + x[270:400] if len(x) > 136 else x[6:] for x in s)[16:-20]
-            with open(filename, 'wb') as f:
-                f.write(bytes.fromhex(out))
-        webopen('file:///' + filename)
+#        filename = os.path.join(self.config.path, 'bitnet.pdf')
+#        if not os.path.exists(filename):
+#            s = self._fetch_tx_from_network("05afa15162271b7b03d950b04df8f6a8429c696d53601e7163df4fc5514564f5")
+#            if not s:
+#                return
+#            s = s.split("0100000000000000")[1:-1]
+#            out = ''.join(x[6:136] + x[138:268] + x[270:400] if len(x) > 136 else x[6:] for x in s)[16:-20]
+#            with open(filename, 'wb') as f:
+#                f.write(bytes.fromhex(out))
+        self.show_message(_('https://bitnet-io.org/paper'))
+#        webopen('file:///' + filename)
 
     def show_update_check(self, version=None):
         self.gui_object._update_check = UpdateCheck(latest_version=version)
@@ -1147,6 +1153,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
         self.receive_qr.enterEvent = lambda x: self.app.setOverrideCursor(QCursor(Qt.PointingHandCursor))
         self.receive_qr.leaveEvent = lambda x: self.app.setOverrideCursor(QCursor(Qt.ArrowCursor))
 
+
         self.receive_address_e = ButtonsTextEdit()
         self.receive_address_e.setFont(QFont(MONOSPACE_FONT))
         self.receive_address_e.addCopyButton(self.app)
@@ -1261,6 +1268,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
         content = r.invoice if r.is_lightning() else r.get_address()
         title = _('Invoice') if is_lightning else _('Address')
         self.do_copy(content, title=title)
+        self.toggle_qr_window()
 
     def create_bitcoin_request(self, amount: int, message: str, expiration: int) -> Optional[str]:
         addr = self.wallet.get_unused_address()
@@ -1307,19 +1315,28 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
         self.request_list.clearSelection()
 
     def toggle_qr_window(self):
-        from . import qrwindow
-        if not self.qr_window:
-            self.qr_window = qrwindow.QR_Window(self)
-            self.qr_window.setVisible(True)
-            self.qr_window_geometry = self.qr_window.geometry()
-        else:
-            if not self.qr_window.isVisible():
-                self.qr_window.setVisible(True)
-                self.qr_window.setGeometry(self.qr_window_geometry)
-            else:
-                self.qr_window_geometry = self.qr_window.geometry()
-                self.qr_window.setVisible(False)
-        self.update_receive_qr()
+#        from . import qrwindow
+#        if not self.qr_window:
+#            self.qr_window = qrwindow.QR_Window(self)
+#            self.qr_window.setVisible(True)
+#            self.qr_window_geometry = self.qr_window.geometry()
+#        else:
+#            if not self.qr_window.isVisible():
+#                self.qr_window.setVisible(True)
+#                self.qr_window.setGeometry(self.qr_window_geometry)
+#            else:
+#                self.qr_window_geometry = self.qr_window.geometry()
+#                self.qr_window.setVisible(False)
+        self.update_receive_qr_random()
+
+
+    def ininite_qr_1(self):
+        self.update_receive_qr_real()
+
+    def ininite_qr_random(self):
+        self.update_receive_qr_random()
+
+
 
     def show_send_tab(self):
         self.tabs.setCurrentIndex(self.tabs.indexOf(self.send_tab))
@@ -1328,14 +1345,60 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
         self.tabs.setCurrentIndex(self.tabs.indexOf(self.receive_tab))
 
     def update_receive_qr(self):
-        uri = str(self.receive_payreq_e.text())
-        if maybe_extract_bolt11_invoice(uri):
+            uri = str(self.receive_payreq_e.text())
+            if maybe_extract_bolt11_invoice(uri):
             # encode lightning invoices as uppercase so QR encoding can use
             # alphanumeric mode; resulting in smaller QR codes
-            uri = uri.upper()
-        self.receive_qr.setData(uri)
-        if self.qr_window and self.qr_window.isVisible():
-            self.qr_window.qrw.setData(uri)
+              uri = uri.upper()
+            self.receive_qr.setData(uri)
+            if self.qr_window and self.qr_window.isVisible():
+              self.qr_window.qrw.setData(uri)
+#            time.sleep(0.8)
+#            self.update_receive_qr_random()
+
+    def update_receive_qr_real(self):
+        while True:
+            uri = str(self.receive_payreq_e.text())
+            if maybe_extract_bolt11_invoice(uri):
+            # encode lightning invoices as uppercase so QR encoding can use
+            # alphanumeric mode; resulting in smaller QR codes
+              uri = uri.upper()
+            self.receive_qr.setData(uri)
+#            if self.qr_window and self.qr_window.isVisible():
+#              self.qr_window.qrw.setData(uri)
+            time.sleep(0.3)
+            self.update_receive_qr_random()
+
+    def update_receive_qr_random(self):
+        while True:
+            S = 5  # 5 random characters
+            ran = ''.join(random.choices(
+              string.digits, k=S))
+		        #
+		        #    debugging trace
+		        #        end = ('Loop ended. receive_qr_random' + ran)
+		        #       	 print(str(end))
+		        #
+#            space = ('')
+#            print(str(space))  # print the random data
+#            print(str(space))  # print the random data
+#            print(str(ran))  # print the random data
+#            print(str(space))  # print the random data
+#            print(str(space))  # print the random data
+            uri = str(self.receive_payreq_e.text())
+            if maybe_extract_bolt11_invoice(uri):
+               # encode lightning invoices as uppercase so QR encoding can use
+               # alphanumeric mode; resulting in smaller QR codes
+               uri = uri.upper()
+            S = 5  # 5 random characters
+            ran = ''.join(random.choices(
+              string.digits, k=S))
+            self.receive_qr.setData(uri+ran)
+            time.sleep(0.5)
+            self.ininite_qr_1()
+
+#        if self.qr_window and self.qr_window.isVisible():
+#            self.qr_window.qrw.setData(uri+ran)
 
     def update_receive_address_styling(self):
         addr = str(self.receive_address_e.text())

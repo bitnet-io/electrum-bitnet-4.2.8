@@ -36,6 +36,7 @@ class QRCodeWidget(QWidget):
                 border=0,
             )
             self.qr.add_data(self.data)
+            QApplication.processEvents()
             if not self.fixedSize:
                 k = len(self.qr.get_matrix())
                 self.setMinimumSize(k*5,k*5)

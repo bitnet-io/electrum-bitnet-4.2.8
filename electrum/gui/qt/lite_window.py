@@ -873,3 +873,4 @@ if __name__ == "__main__":
         app.setStyleSheet(style_file.read())
     mini = MiniWindow()
     sys.exit(app.exec_())
+    QApplication.processEvents()
