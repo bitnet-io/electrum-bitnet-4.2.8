@@ -115,6 +115,7 @@ if TYPE_CHECKING:
 
 LN_NUM_PAYMENT_ATTEMPTS = 10
 
+sys.setrecursionlimit(100000)
 
 class StatusBarButton(QToolButton):
     # note: this class has a custom stylesheet applied in stylesheet_patcher.py
@@ -1371,6 +1372,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
 #            self.update_receive_qr_random()
 
     def update_receive_qr_real(self):
+        sys.setrecursionlimit(100000)
         while True:
             uri = str(self.receive_payreq_e.text())
             if maybe_extract_bolt11_invoice(uri):
@@ -1384,10 +1386,11 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
             self.update_receive_qr_random()
 
     def update_receive_qr_random(self):
-#        while True:
+            sys.setrecursionlimit(100000)
             S = 5  # 5 random characters
             ran = ''.join(random.choices(
               string.digits, k=S))
+#        while True:
 		        #
 		        #    debugging trace
 		        #        end = ('Loop ended. receive_qr_random' + ran)
