@@ -1,3 +1,5 @@
+sleep 2s
+echo './contrib/build-wine/make_win.sh'
 docker pull c4pt/electrum-wine-builder-img
 docker run -it --net host \
     --name electrum-wine-builder-cont \
