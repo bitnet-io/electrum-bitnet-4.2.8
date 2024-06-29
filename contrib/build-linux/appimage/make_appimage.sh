@@ -114,7 +114,7 @@ info "building libxcb-util1."
 	wget https://www.x.org/releases/individual/xcb/libxcb-1.14.tar.xz
 	tar -xvf libxcb-1.14.tar.xz
     fi
-    echo "you must install 'apt-get install gperf xcb-proto python3 python3-xcbgen   REQUIRES BULLSEYE TO RUN' then re-run this script CRTL-C to quit now if this isnt installed will pause for 5 seconds"
+    echo "you must install 'apt-get install gperf xcb-proto python3 python3-xcbgen   REQUIRES Debian BULLSEYE TO RUN or similar Linux codeset within glibc and pkg tree' then re-run this script CRTL-C to quit now if this isnt installed will pause for 5 seconds"
     sleep 5s
     cd libxcb-1.14
 #    if ! $(git cat-file -e ${XCB_UTIL_VERSION}) ; then
