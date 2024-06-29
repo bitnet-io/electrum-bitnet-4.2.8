@@ -24,7 +24,7 @@ export PATH=$PATH:~/bin
 
 
 if [ -z "$1" ]; then
-    echo "Usage: $0 Electrum.app"
+    echo "Usage: $0 Electrum-BIT.app"
     exit -127
 fi
 

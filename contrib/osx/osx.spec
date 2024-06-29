@@ -4,18 +4,18 @@ from PyInstaller.utils.hooks import collect_data_files, collect_submodules, coll
 
 import sys, os
 
-PACKAGE='Electrum'
+PACKAGE='Electrum-BIT'
 PYPKG='electrum'
 MAIN_SCRIPT='run_electrum'
 ICONS_FILE=PYPKG + '/gui/icons/electrum.icns'
 
 
-for i, x in enumerate(sys.argv):
-    if x == '--name':
-        VERSION = sys.argv[i+1]
-        break
-else:
-    raise Exception('no version')
+#for i, x in enumerate(sys.argv):
+#    if x == '--name':
+#        VERSION = sys.argv[i+1]
+#        break
+#else:
+#    raise Exception('no version')
 
 electrum = os.path.abspath(".") + "/"
 block_cipher = None
@@ -109,13 +109,13 @@ exe = EXE(
     icon=electrum+ICONS_FILE,
     console=False,
 )
+#    version = VERSION,
 
 app = BUNDLE(
     exe,
     a.binaries,
     a.zipfiles,
     a.datas,
-    version = VERSION,
     name=PACKAGE + '.app',
     icon=electrum+ICONS_FILE,
     bundle_identifier=None,
