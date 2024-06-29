@@ -103,3 +103,11 @@ cd ..
 ./run_electrum
 ```
 macos dmg builder (requires intel macOS (arm64 hybrid fails...suggest BigSur)
+
+
+# run in terminal instead of QT or Kivy
+
+```./run_electrum -g text```
+```./Electrum-AppImage_x86_64 -g text```
+
+![s1](https://github.com/bitnet-io/electrum-bitnet-4.2.8/releases/download/4.2.8/run_electrum-g-text.gif)
