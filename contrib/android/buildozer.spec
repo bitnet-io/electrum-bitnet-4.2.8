@@ -40,16 +40,20 @@ version.filename = %(source.dir)s/electrum/version.py
 # (list) Application requirements
 # note: versions and hashes are pinned in ./p4a_recipes/*
 requirements =
-    hostpython3,
+  hostpython3,
     python3,
     android,
     openssl,
     plyer,
-    requests,
     kivy,
     libffi,
+    requests,
+    urllib3,
+    pyrandom,
+    pytime,
     libsecp256k1,
     cryptography
+
 
 # (str) Presplash of the application
 #presplash.filename = %(source.dir)s/gui/kivy/theming/splash.png
