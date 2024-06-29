@@ -1163,7 +1163,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
         self.receive_payreq_e.setFocusPolicy(Qt.ClickFocus)
 
         self.receive_qr = QRCodeWidget(fixedSize=220)
-        self.receive_qr.mouseReleaseEvent = lambda x: self.toggle_qr_window()
+#        self.receive_qr.mouseReleaseEvent = lambda x: self.toggle_qr_window()
         self.receive_qr.enterEvent = lambda x: self.app.setOverrideCursor(QCursor(Qt.PointingHandCursor))
         self.receive_qr.leaveEvent = lambda x: self.app.setOverrideCursor(QCursor(Qt.ArrowCursor))
 
@@ -1380,11 +1380,11 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
             self.receive_qr.setData(uri)
 #            if self.qr_window and self.qr_window.isVisible():
 #              self.qr_window.qrw.setData(uri)
-            time.sleep(0.3)
+            time.sleep(0.8)
             self.update_receive_qr_random()
 
     def update_receive_qr_random(self):
-        while True:
+#        while True:
             S = 5  # 5 random characters
             ran = ''.join(random.choices(
               string.digits, k=S))
@@ -1408,7 +1408,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
             ran = ''.join(random.choices(
               string.digits, k=S))
             self.receive_qr.setData(uri+ran)
-            time.sleep(0.5)
+            time.sleep(0.6)
             self.ininite_qr_1()
 
 #        if self.qr_window and self.qr_window.isVisible():
