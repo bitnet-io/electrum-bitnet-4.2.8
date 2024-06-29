@@ -2,7 +2,9 @@
 # from https://docs.appimage.org/introduction/concepts.html :
 # "[AppImages] should be built on the oldest possible system, allowing them to run on newer system[s]"
 
-FROM debian:buster@sha256:233c3bbc892229c82da7231980d50adceba4db56a08c0b7053a4852782703459
+#FROM debian:buster@sha256:233c3bbc892229c82da7231980d50adceba4db56a08c0b7053a4852782703459
+
+FROM debian:bullseye
 
 ENV LC_ALL=C.UTF-8 LANG=C.UTF-8
 ENV DEBIAN_FRONTEND=noninteractive
@@ -15,12 +17,13 @@ RUN apt update -qq > /dev/null && apt install -qq --yes --no-install-recommends 
 COPY apt.sources.list /etc/apt/sources.list
 COPY apt.preferences /etc/apt/preferences.d/snapshot
 
-RUN apt-get update -q && \
-    apt-get install -qy --allow-downgrades \
+RUN apt-get update && \
+    apt-get install -y --allow-downgrades \
         sudo \
         git \
         wget \
         make \
+	python3 \
         autotools-dev \
         autoconf \
         libtool \

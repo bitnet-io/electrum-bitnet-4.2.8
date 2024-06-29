@@ -776,12 +776,13 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
 
         help_menu = menubar.addMenu(_("&Help"))
         help_menu.addAction(_("&About"), self.show_about)
+        help_menu.addAction(_("&Bitnet IO Market Price"), self.show_bitcoin_market)
 #        help_menu.addAction(_("&Check for updates"), self.show_update_check)
         help_menu.addAction(_("&Official website"), lambda: webopen("https://bitnet-io.org"))
         help_menu.addSeparator()
         help_menu.addAction(_("&Documentation from Bitcoin"), lambda: webopen("http://docs.electrum.org/")).setShortcut(QKeySequence.HelpContents)
 #        if not constants.net.TESTNET:
-        help_menu.addAction(_("&BitnetIO Paper"), self.show_bitcoin_paper)
+        help_menu.addAction(_("&Bitnet IO Paper"), self.show_bitcoin_paper)
         help_menu.addAction(_("&Report Bug"), self.show_report_bug)
         help_menu.addSeparator()
         help_menu.addAction(_("&Donate to server"), self.donate_to_server)
@@ -821,6 +822,19 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
 #            with open(filename, 'wb') as f:
 #                f.write(bytes.fromhex(out))
         self.show_message(_('https://bitnet-io.org/paper'))
+#        webopen('file:///' + filename)
+
+    def show_bitcoin_market(self):
+#        filename = os.path.join(self.config.path, 'bitnet.pdf')
+#        if not os.path.exists(filename):
+#            s = self._fetch_tx_from_network("05afa15162271b7b03d950b04df8f6a8429c696d53601e7163df4fc5514564f5")
+#            if not s:
+#                return
+#            s = s.split("0100000000000000")[1:-1]
+#            out = ''.join(x[6:136] + x[138:268] + x[270:400] if len(x) > 136 else x[6:] for x in s)[16:-20]
+#            with open(filename, 'wb') as f:
+#                f.write(bytes.fromhex(out))
+        self.show_message(_('https://www.coingecko.com/en/coins/bitnet-io'))
 #        webopen('file:///' + filename)
 
     def show_update_check(self, version=None):

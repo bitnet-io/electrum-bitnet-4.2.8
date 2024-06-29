@@ -99,7 +99,7 @@ cp -f "$DLL_TARGET_DIR/libzbar.so.0" "$APPDIR/usr/lib/" || fail "Could not copy 
 # note: libxcb-util1 is not available in debian 10 (buster), only libxcb-util0. So we build it ourselves.
 #       This pkg is needed on some distros for Qt to launch. (see #8011)
 info "building libxcb-util1."
-XCB_UTIL_VERSION="acf790d7752f36e450d476ad79807d4012ec863b"
+#XCB_UTIL_VERSION="acf790d7752f36e450d476ad79807d4012ec863b"
 # ^ git tag 0.4.0
 (
     if [ -f "$CACHEDIR/libxcb-util1/util/src/.libs/libxcb-util.so.1" ]; then
@@ -110,22 +110,26 @@ XCB_UTIL_VERSION="acf790d7752f36e450d476ad79807d4012ec863b"
     mkdir "libxcb-util1"
     cd "libxcb-util1"
     if [ ! -d util ]; then
-        git clone --recursive "https://anongit.freedesktop.org/git/xcb/util"
+#        git clone --recursive "https://gitlab.freedesktop.org/xorg/lib/libxcb-util"
+	wget https://www.x.org/releases/individual/xcb/libxcb-1.14.tar.xz
+	tar -xvf libxcb-1.14.tar.xz
     fi
-    cd util
-    if ! $(git cat-file -e ${XCB_UTIL_VERSION}) ; then
-        info "Could not find requested version $XCB_UTIL_VERSION in local clone; fetching..."
-        git fetch --all
-        git submodule update
-    fi
-    git reset --hard
-    git clean -dfxq
-    git checkout "${XCB_UTIL_VERSION}^{commit}"
+    echo "you must install 'apt-get install gperf xcb-proto python3 python3-xcbgen   REQUIRES BULLSEYE TO RUN' then re-run this script CRTL-C to quit now if this isnt installed will pause for 5 seconds"
+    sleep 5s
+    cd libxcb-1.14
+#    if ! $(git cat-file -e ${XCB_UTIL_VERSION}) ; then
+#        info "Could not find requested version $XCB_UTIL_VERSION in local clone; fetching..."
+#        git fetch --all
+#        git submodule update
+#    fi
+#    git reset --hard
+#    git clean -dfxq
+#    git checkout "${XCB_UTIL_VERSION}^{commit}"
     ./autogen.sh
     ./configure --enable-shared
     make "-j$CPU_COUNT" -s || fail "Could not build libxcb-util1"
 ) || fail "Could build libxcb-util1"
-cp "$CACHEDIR/libxcb-util1/util/src/.libs/libxcb-util.so.1" "$APPDIR/usr/lib/libxcb-util.so.1"
+cp "/usr/lib/x86_64-linux-gnu/libxcb-util.so.1" "$APPDIR/usr/lib/libxcb-util.so.1"
 
 
 appdir_python() {
