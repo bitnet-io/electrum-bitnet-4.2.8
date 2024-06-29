@@ -105,7 +105,7 @@ cd ..
 macos dmg builder (requires intel macOS (arm64 hybrid fails...suggest BigSur)
 
 
-# run in terminal instead of QT or Kivy
+# running this in terminal directly with ncurses graphics instead of QT or Kivy
 
 ```./run_electrum -g text```
 ```./Electrum-AppImage_x86_64 -g text```
