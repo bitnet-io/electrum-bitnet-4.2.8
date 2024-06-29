@@ -1,3 +1,6 @@
+sleep 2s
+echo './contrib/android/make_apk'
+
 docker pull c4pt/electrum-android-build-apks
 
 docker run -it -d --net host --rm \
