@@ -1,3 +1,7 @@
+# 07-01-2024 improvements to the QR code
+
+![s1](https://github.com/c4pt000/a-PROTECTED_QR_CODE-QR-code-Encryption-layer-for-QR-codes-in-plainsight-and-machine-vision-and-crypt/releases/download/gif/new-QR-electrum-bitnet-4.2.8.gif)
+
 
 # requires older python3 aiorpcx == 0.18.7 and libsecp256k1.so.0 or wont work
 ```
