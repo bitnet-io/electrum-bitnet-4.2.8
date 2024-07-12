@@ -63,6 +63,17 @@ Builder.load_string('''
                         if root.on_close: root.on_close()
 ''')
 
+import threading
+
+
+def thread(function):
+    def wrap(*args, **kwargs):
+        t = threading.Thread(target=function, args=args, kwargs=kwargs, daemon=True)
+        t.start()
+
+        return t
+    return wrap
+
 class QRDialog(Factory.Popup):
 
     def __init__(
@@ -83,6 +94,7 @@ class QRDialog(Factory.Popup):
         self.close_button_text = close_button_text or _('Close')
         self.on_close = on_close
 
+    @thread
     def on_open(self):
         self.ids.qr.set_data(self.data, self.failure_cb)
 

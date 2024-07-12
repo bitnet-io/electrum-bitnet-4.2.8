@@ -4,9 +4,19 @@
 from threading import Thread
 from functools import partial
 
-import qrcode
+import qrcode 
 from qrcode import exceptions
 
+# kivy cant give to pyqt5 threads
+#from PyQt5.QtWidgets import (
+#    QApplication, QVBoxLayout, QTextEdit, QHBoxLayout, QPushButton, QWidget,
+#    QFileDialog,
+#)
+
+import threading
+
+
+from kivy.app import App
 from kivy.uix.floatlayout import FloatLayout
 from kivy.graphics.texture import Texture
 from kivy.properties import StringProperty
@@ -15,7 +25,9 @@ from kivy.properties import ObjectProperty, StringProperty, ListProperty,\
 from kivy.lang import Builder
 from kivy.clock import Clock
 
-
+import random
+import string
+import time
 
 Builder.load_string('''
 <QRCodeWidget>
@@ -40,11 +52,24 @@ Builder.load_string('''
         size: root.width * .9, root.height * .9
 ''')
 
+#def thread(function):
+#    def wrap(*args, **kwargs):
+#        t = threading.Thread(target=function, args=args, kwargs=kwargs, daemon=True)
+#        t.start()
+#
+#        return t
+#    return wrap
+
 class QRCodeWidget(FloatLayout):
 
     data = StringProperty(None, allow_none=True)
     background_color = ListProperty((1, 1, 1, 1))
     foreground_color = ListProperty((0, 0, 0, 0))
+
+    stop = threading.Event()
+
+#    def start_second_thread(self, l_text):
+#        threading.Thread(target=self.update_qr_ran, args=(l_text,)).start()
 
     def __init__(self, **kwargs):
         super(QRCodeWidget, self).__init__(**kwargs)
@@ -73,10 +98,12 @@ class QRCodeWidget(FloatLayout):
         self.data = data
         self.qr = None
 
-    def update_qr(self):
+#    @thread
+    def update_qr(self, *args):
         if not self.data and self.qr:
             return
         L = qrcode.constants.ERROR_CORRECT_L
+#        H = qrcode.constants.ERROR_CORRECT_H
         data = self.data
         self.qr = qr = qrcode.QRCode(
             version=None,
@@ -84,9 +111,37 @@ class QRCodeWidget(FloatLayout):
             box_size=10,
             border=0,
         )
+        S = 5  # 5 random characters
+        ran = ''.join(random.choices(
+              string.digits, k=S))
         qr.add_data(data)
         qr.make(fit=True)
         self.update_texture()
+        time.sleep(0.8)
+#        Clock.schedule_interval(self.update_qr_ran, 1.0/33.0)
+        Clock.schedule_once(self.update_qr_ran)
+
+    def update_qr_ran(self, *args):
+        if not self.data and self.qr:
+            return
+        L = qrcode.constants.ERROR_CORRECT_L
+#        H = qrcode.constants.ERROR_CORRECT_H
+        data = self.data
+        self.qr = qr = qrcode.QRCode(
+            version=None,
+            error_correction=L,
+            box_size=10,
+            border=0,
+        )
+        S = 5  # 5 random characters
+        ran = ''.join(random.choices(
+              string.digits, k=S))
+        qr.add_data(data+ran)
+        time.sleep(0.4)
+        qr.make(fit=True)
+        self.update_texture()
+#        Clock.schedule_interval(self.update_qr, 1.0/33.0)
+        Clock.schedule_once(self.update_qr)
 
     def setMinimumSize(self, size):
         # currently unused, do we need this?
@@ -124,6 +179,44 @@ class QRCodeWidget(FloatLayout):
         img.anim_delay = -1
         img.texture = texture
         img.canvas.ask_update()
+
+    def infinite_loop(self):
+        iteration = 0
+        while True:
+            if self.stop.is_set():
+                # Stop running this thread so the main Python process can exit.
+                return
+            iteration += 1
+            print('Infinite loop, iteration {}.'.format(iteration))
+            H = qrcode.constants.ERROR_CORRECT_H
+            data = self.data
+            self.qr = qr = qrcode.QRCode(
+                version=None,
+                error_correction=H,
+                box_size=10,
+                border=0,
+            )
+            S = 5  # 5 random characters
+            ran = ''.join(random.choices(
+               string.digits, k=S))
+#        self.receive_qr.setData(uri+ran)
+            time.sleep(0.8)
+            qr.add_data(data)
+            qr.make(fit=True)
+            self.update_texture()
+
+
+
+class ThreadedApp(App):
+
+    def on_stop(self):
+        # The Kivy event loop is about to stop, set a stop signal;
+        # otherwise the app window will close, but the Python process will
+        # keep running until all secondary threads exit.
+        self.root.stop.set()
+
+    def build(self):
+        return QRCodeWidget()
 
 if __name__ == '__main__':
     from kivy.app import runTouchApp
