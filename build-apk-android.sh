@@ -8,8 +8,8 @@ echo './create-keystore-and-sign.sh'
 
 docker pull c4pt/electrum-android-build-apks
 
-docker run -it -d --net host --rm \
+docker run -it -d --net host --rm --user root \
     -v $PWD:/home/user/wspace/electrum \
     -v $PWD/.buildozer/.gradle:/home/user/.gradle \
     --workdir /home/user/wspace/electrum \
-    c4pt/electrum-android-build-apks 
+    c4pt/electrum-android-build-apks
