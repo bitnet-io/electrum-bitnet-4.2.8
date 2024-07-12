@@ -3,6 +3,18 @@
 ![s1](https://github.com/c4pt000/a-PROTECTED_QR_CODE-QR-code-Encryption-layer-for-QR-codes-in-plainsight-and-machine-vision-and-crypt/releases/download/gif/new-QR-electrum-bitnet-4.2.8.gif)
 
 
+# how to restore kivy framework revert to -> python3.8
+# with python3.8 installed
+```
+ wget https://bootstrap.pypa.io/get-pip.py
+ python3.8 get-pip.py 
+ python3.8 -m pip install pip install kivy==2.0.0rc2
+ python3.8 -m pip install .
+ python3.8 -m pip install cryptography
+ python3.8 -m pip install protobuf==3.19.0
+ python3.8 run_electrum -g kivy
+```
+
 # requires older python3 aiorpcx == 0.18.7 and libsecp256k1.so.0 or wont work
 ```
 git clone https://github.com/bitnet-io/electrum-bitnet-4.2.8
