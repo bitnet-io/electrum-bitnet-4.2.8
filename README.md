@@ -8,7 +8,7 @@
 ```
  wget https://bootstrap.pypa.io/get-pip.py
  python3.8 get-pip.py 
- python3.8 -m pip install pip install kivy==2.0.0rc2
+ python3.8 -m pip install kivy==2.0.0rc2
  python3.8 -m pip install .
  python3.8 -m pip install cryptography
  python3.8 -m pip install protobuf==3.19.0
