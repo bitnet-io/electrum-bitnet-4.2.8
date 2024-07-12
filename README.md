@@ -11,7 +11,7 @@
  python3.8 -m pip install kivy==2.0.0rc2
  python3.8 -m pip install .
  python3.8 -m pip install cryptography
- python3.8 -m pip install protobuf==3.19.0
+ python3.8 -m pip install aiorpcx==0.18.7 cryptography requests PyQt5 protobuf==3.20.0
  python3.8 run_electrum -g kivy
 ```
 
