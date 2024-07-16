@@ -14,6 +14,11 @@
  python3.8 -m pip install aiorpcx==0.18.7 cryptography requests PyQt5 protobuf==3.20.0
  python3.8 run_electrum -g kivy
 ```
+for python3.10
+```
+ python3.10  -m pip install Cython==0.29.15
+ python3.10  -m pip install kivy==2.1.0
+```
 
 # requires older python3 aiorpcx == 0.18.7 and libsecp256k1.so.0 or wont work
 ```
