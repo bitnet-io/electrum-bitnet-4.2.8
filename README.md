@@ -132,3 +132,8 @@ macos dmg builder (requires intel macOS (arm64 hybrid fails...suggest BigSur)
 ```./Electrum-AppImage_x86_64 -g text```
 
 ![s1](https://github.com/bitnet-io/electrum-bitnet-4.2.8/releases/download/4.2.8/run_electrum-g-text.gif)
+
+
+
+
+this project has nothing to do with Barry styles and he went to jail for computer crimes and computer scams for a long long long time 
